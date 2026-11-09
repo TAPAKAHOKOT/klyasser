@@ -60,7 +60,7 @@ svg.f{fill:currentColor;stroke:none}
 .panel-head{display:flex;align-items:center;gap:10px;padding:16px 18px 10px;flex:none;min-height:60px}
 .panel-head h2{font:italic 500 28px/1 var(--serif);color:var(--blue-deep);margin:0;white-space:nowrap}
 .count{font:500 11px var(--mono);color:var(--ink-3);align-self:flex-end;margin-bottom:3px}
-.panel-body{flex:1;min-height:0;overflow:auto;padding:2px 18px 18px;scrollbar-width:thin;scrollbar-color:rgba(34,49,78,.18) transparent}
+.panel-body{flex:1;min-height:0;overflow:auto;overflow-anchor:none;padding:2px 18px 18px;scrollbar-width:thin;scrollbar-color:rgba(34,49,78,.18) transparent}
 .panel-foot{flex:none;padding:10px 18px 14px;border-top:1px dashed var(--line);display:flex;justify-content:center}
 .panel-foot[hidden]{display:none}
 .hills{position:fixed;left:0;right:0;bottom:0;height:110px;pointer-events:none;z-index:0;opacity:.6}
@@ -116,6 +116,9 @@ svg.f{fill:currentColor;stroke:none}
   background:radial-gradient(circle,var(--blue-pale) 1.1px,transparent 1.5px) 0 0/7px 7px;transition:background-color .2s,padding .2s;margin:0}
 .buffer-top{flex:none;padding:2px 18px 12px;border-bottom:1px dashed transparent;transition:border-color .2s;position:relative;z-index:2}
 .buffer.scrolled .buffer-top{border-bottom-color:var(--line)}
+.up-wrap{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s var(--ease),opacity .2s}
+.up-wrap.on{grid-template-rows:1fr;opacity:1}
+.up-wrap > div{overflow:hidden;min-height:0}
 .upload{margin-top:10px;background:var(--card-2);border-radius:12px;padding:10px 12px 9px;box-shadow:inset 0 0 0 1px var(--line)}
 .up-row{display:flex;align-items:center;gap:8px;font:600 12.5px var(--sans);color:var(--ink)}
 .up-row svg{width:12px;height:12px;color:var(--red);animation:spin 1.4s linear infinite;flex:none}
@@ -132,7 +135,7 @@ svg.f{fill:currentColor;stroke:none}
 .buffer.drop-in .drop{background-color:var(--blue-mist)}
 .stamps{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:4px 2px 6px}
 
-.stamp-wrap{position:relative;filter:drop-shadow(0 1px 1.5px rgba(34,49,78,.28)) drop-shadow(0 8px 10px rgba(34,49,78,.12));transform:rotate(var(--rot,0deg));transition:transform .2s;cursor:grab;user-select:none}
+.stamp-wrap{position:relative;filter:drop-shadow(0 1px 1.5px rgba(34,49,78,.28)) drop-shadow(0 8px 10px rgba(34,49,78,.12));transform:rotate(var(--rot,0deg));transition:transform .2s,opacity .22s;cursor:grab;user-select:none}
 .stamp-wrap:hover{transform:rotate(0deg) translateY(-2px)}
 .stamp{--r:4px;padding:calc(2*var(--r) + 1px);background:var(--card-2);
   -webkit-mask:radial-gradient(var(--r),#0000 98%,#000) round calc(-1.5*var(--r)) calc(-1.5*var(--r))/calc(3*var(--r)) calc(3*var(--r)),linear-gradient(#000 0 0) no-repeat 50%/calc(100% - 3*var(--r)) calc(100% - 3*var(--r));
@@ -161,7 +164,7 @@ svg.f{fill:currentColor;stroke:none}
 .feed-scroll{padding:6px 24px 28px;transition:background-color .2s}
 .feed-wrap{position:relative;max-width:450px;margin:0 auto}
 .feed{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
-.cell{position:relative;aspect-ratio:3/4;background:var(--blue-mist);overflow:hidden;cursor:grab;user-select:none}
+.cell{position:relative;aspect-ratio:3/4;background:var(--blue-mist);overflow:hidden;cursor:grab;user-select:none;transition:opacity .22s}
 .cell img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;transition:filter .15s}
 .cell.sel{outline:3px solid var(--blue-deep);outline-offset:-3px}
 .cell.clash::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2px var(--red);pointer-events:none}
@@ -183,7 +186,8 @@ svg.f{fill:currentColor;stroke:none}
   background:linear-gradient(transparent,rgba(20,28,48,.8));opacity:0;transition:opacity .15s;pointer-events:none}
 .cell:hover .ov-info{opacity:1}
 .cell:hover .ov-bl{opacity:0}
-.bounds{position:absolute;inset:0;pointer-events:none}
+.bounds{position:absolute;inset:0;pointer-events:none;transition:opacity .25s ease .05s}
+.bounds.hide{opacity:0;transition:none}
 .bounds svg{position:absolute;inset:0;overflow:visible}
 .bounds path{fill:none;stroke-width:2;stroke-dasharray:6 4;stroke-linecap:round}
 .bounds .pub-line{stroke:var(--red)}
@@ -209,8 +213,12 @@ body.dragging .hb,body.dragging .ov-info{opacity:0!important}
 .feed-panel.drop-auto .drop-hint{opacity:1;transform:translate(-50%,0)}
 .ghost{position:fixed;left:0;top:0;width:92px;pointer-events:none;z-index:90;filter:drop-shadow(0 14px 20px rgba(20,28,48,.35)) drop-shadow(0 2px 3px rgba(20,28,48,.3));will-change:transform}
 .ghost .stamp{--r:3px}
-.fly{position:fixed;z-index:85;pointer-events:none;overflow:hidden;transform-origin:0 0;box-shadow:0 12px 26px -10px rgba(20,28,48,.55)}
-.fly img{width:100%;height:100%;object-fit:cover;display:block}
+.fly-clip{position:fixed;inset:0;z-index:85;pointer-events:none}
+.fly{position:absolute;pointer-events:none;transform-origin:50% 50%;will-change:transform;filter:drop-shadow(0 10px 14px rgba(20,28,48,.32)) drop-shadow(0 1px 2px rgba(20,28,48,.28))}
+.fly img{position:relative;width:100%;height:100%;object-fit:cover;display:block}
+.fly-paper{position:absolute;inset:-9px;background:var(--card-2);--r:4px;
+  -webkit-mask:radial-gradient(var(--r),#0000 98%,#000) round calc(-1.5*var(--r)) calc(-1.5*var(--r))/calc(3*var(--r)) calc(3*var(--r)),linear-gradient(#000 0 0) no-repeat 50%/calc(100% - 3*var(--r)) calc(100% - 3*var(--r));
+  mask:radial-gradient(var(--r),#0000 98%,#000) round calc(-1.5*var(--r)) calc(-1.5*var(--r))/calc(3*var(--r)) calc(3*var(--r)),linear-gradient(#000 0 0) no-repeat 50%/calc(100% - 3*var(--r)) calc(100% - 3*var(--r))}
 .pulse::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--blue-deep);animation:pulseOut 1.5s ease-out forwards;pointer-events:none;z-index:3}
 @keyframes pulseOut{0%,45%{opacity:1}100%{opacity:0}}
 
@@ -266,6 +274,7 @@ body.dragging .hb,body.dragging .ov-info{opacity:0!important}
 .attr-row .nm{font:500 13px var(--sans)}
 .attr-row input[type=range]{grid-column:2}
 .attr-row.off .nm{color:var(--ink-3)}
+.attr-row.off input[type=range]{display:none}
 .switch{width:32px;height:18px;border-radius:999px;border:none;background:rgba(34,49,78,.2);position:relative;cursor:pointer;transition:background .2s;flex:none;padding:0}
 .switch::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s var(--ease)}
 .switch.on{background:var(--blue-deep)}
@@ -292,6 +301,12 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 .modal-card{background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;border-radius:var(--radius);padding:22px;max-width:100%;max-height:100%;overflow:auto;box-shadow:0 30px 60px -20px rgba(20,28,48,.6);position:relative;animation:pop .2s var(--ease)}
 .modal-card .panel-head{padding:0 0 12px;min-height:0}
 @keyframes fade{from{opacity:0}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes popOut{to{opacity:0;transform:translateY(6px) scale(.98)}}
+@keyframes menuOut{to{opacity:0;transform:translateY(-4px) scale(.98)}}
+.modal.out,.gate.out{animation:fadeOut .16s forwards}
+.modal.out .modal-card,.gate.out .gate-card{animation:popOut .16s forwards}
+.menu.out{animation:menuOut .12s forwards}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
 .crop-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 #cropCanvas{cursor:grab;border-radius:8px;touch-action:none;display:block;box-shadow:0 0 0 1px var(--line)}
@@ -303,7 +318,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 .keys b{color:var(--blue-deep);font-weight:600;white-space:nowrap}
 
 /* ---------- вход ---------- */
-.gate{position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:16px;overflow:auto;background:var(--noise),var(--paper);background-size:200px 200px,auto}
+.gate{position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:16px;overflow:auto;background:var(--noise),var(--paper);background-size:200px 200px,auto;animation:fade .18s}
 .gate.as-modal{background:rgba(34,49,78,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .gate[hidden]{display:none}
 .gate-card{width:min(400px,100%);background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;border-radius:var(--radius);padding:30px 28px 24px;position:relative;
@@ -374,11 +389,11 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="panel-head"><h2>буфер</h2><span class="count" id="bufCount"></span></div>
       <div class="buffer-top">
         <label class="drop" for="fileInput"><span class="plus"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span><span><b>добавить фото</b><small>или перетащи сюда</small></span></label>
-        <div class="upload" id="upload" hidden>
+        <div class="up-wrap" id="upWrap"><div><div class="upload" id="upload">
           <div class="up-row"><svg class="f" viewBox="0 0 20 20"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg><span id="upText">загружаю фото</span><span class="up-pct" id="upPct"></span></div>
           <div class="up-track"><i id="upBar"></i></div>
           <div class="up-name" id="upName"></div>
-        </div>
+        </div></div></div>
       </div>
       <div class="panel-body" id="bufferBody">
         <div class="stamps" id="stamps"></div>
@@ -485,7 +500,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const RM = matchMedia('(prefers-reduced-motion: reduce)'), reduced = () => RM.matches; // читаем каждый раз: настройку могут включить на ходу
 const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
 
 const svg = (body, vb = '0 0 16 16') => `<svg class="i" viewBox="${vb}" aria-hidden="true">${body}</svg>`;
@@ -744,7 +759,7 @@ function restore(json){
   S.layout = s.layout; S.seed = s.seed; S.settings = s.settings;
   for (const [id, m] of s.manual){ const p = S.photos.get(id); if (p) p.manual = m; }
   sanitizeLayout(); S.dirty = false;
-  persist(); renderSettings(); renderAll(); animateFrom(prev);
+  persist(); renderSettings(); renderAll(); animateFrom(prev, { autoFocus: true });
 }
 function undo(){ if (!S.undo.length) return; S.redo.push(snapshot()); restore(S.undo.pop()); }
 function redo(){ if (!S.redo.length) return; S.undo.push(snapshot()); restore(S.redo.pop()); }
@@ -864,14 +879,47 @@ function computeClashes(D){
 }
 
 // ---------- анимации ----------
+// Каждое фото описывается «позой»: центр, размер без поворота, наклон, вид (клетка или марка)
+// и видимая область его панели. Перелёт между панелями рисует отдельная копия — у каждого фото она одна:
+// новое действие перехватывает её с того места, где она сейчас, а не запускает вторую.
 const scrollers = () => [$('#feedScroll'), $('#bufferBody')];
+const FLY = new Map();
+const EASE = 'cubic-bezier(.22,.75,.25,1)';
+const durFor = (dx, dy) => clamp(260 + Math.hypot(dx, dy) * .1, 280, 520);
+function rotOf(el){
+  const t = getComputedStyle(el).transform; if (!t || t === 'none') return 0;
+  const m = t.match(/matrix\(([^)]+)\)/); if (!m) return 0;
+  const [a, b] = m[1].split(',').map(Number); return Math.atan2(b, a) * 180 / Math.PI;
+}
+function poseOf(el){
+  const img = el.querySelector('img'), r = img.getBoundingClientRect(), stamp = el.classList.contains('stamp-wrap'), sc = el.closest('.panel-body');
+  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: img.offsetWidth, h: img.offsetHeight, rot: stamp ? rotOf(el) : 0,
+    kind: stamp ? 'stamp' : 'cell', paper: stamp ? 1 : 0, clip: sc ? sc.getBoundingClientRect() : null, src: img.currentSrc || img.src };
+}
+// Копия в полёте обрезается по панелям, как настоящие клетки: рамка плавно переходит от панели-источника к панели-цели
+const viewBox = () => ({ left: 0, top: 0, right: document.documentElement.clientWidth, bottom: document.documentElement.clientHeight });
+function insetOf(c){ const v = viewBox(); return `inset(${c.top}px ${v.right - c.right}px ${v.bottom - c.bottom}px ${c.left}px)`; }
+function clipNow(wrap){ // текущая рамка обрезки (во время анимации — промежуточная)
+  const n = (getComputedStyle(wrap).clipPath.match(/-?[\d.]+(?=px)/g) || []).map(Number); if (!n.length) return null;
+  const [t, r = t, b = t, l = r] = n, v = viewBox();
+  return { top: t, right: v.right - r, bottom: v.bottom - b, left: l };
+}
+function flyPose(rec){
+  const r = rec.f.getBoundingClientRect();
+  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, rot: rotOf(rec.f), kind: 'fly', paper: +getComputedStyle(rec.paper).opacity, clip: null, box: clipNow(rec.wrap), src: rec.src };
+}
+function visible(p){ // фото хотя бы наполовину видно в своей панели
+  if (!p.clip) return true;
+  const c = p.clip, ox = Math.min(p.cx + p.w / 2, c.right) - Math.max(p.cx - p.w / 2, c.left), oy = Math.min(p.cy + p.h / 2, c.bottom) - Math.max(p.cy - p.h / 2, c.top);
+  return ox > p.w * .4 && oy > p.h * .4;
+}
 function captureRects(){
   const rects = new Map();
   for (const el of $$('.cell[data-id], .stamp-wrap[data-id]')){
-    if (el.closest('.insp-prev')) continue;
-    const img = el.querySelector('img'); if (!img) continue;
-    rects.set(el.dataset.id, { rect: img.getBoundingClientRect(), kind: el.classList.contains('cell') ? 'cell' : 'stamp' });
+    if (el.closest('.insp-prev') || !el.querySelector('img')) continue;
+    rects.set(el.dataset.id, poseOf(el));
   }
+  for (const [id, rec] of FLY) rects.set(id, flyPose(rec)); // фото в полёте — с того места, где оно сейчас
   return { rects, scroll: scrollers().map(s => s.scrollTop) };
 }
 function ensureVisible(el){
@@ -880,37 +928,79 @@ function ensureVisible(el){
   if (r.top < b.top + 8) sc.scrollTop += r.top - b.top - 16;
   else if (r.bottom > b.bottom - 8) sc.scrollTop += r.bottom - b.bottom + 16;
 }
+function fadeBounds(){ const b = $('#bounds'); b.classList.add('hide'); clearTimeout(fadeBounds.t); fadeBounds.t = setTimeout(() => b.classList.remove('hide'), 480); }
+// Сначала все замеры, потом все анимации — так браузер пересчитывает раскладку один раз, а не на каждое фото.
 function animateFrom(prev, opts = {}){
   if (!prev) return;
-  const focus = opts.focusId || (opts.ghost && opts.ghost.id);
-  if (focus){ const el = $(`.cell[data-id="${focus}"], .stamp-wrap[data-id="${focus}"]`); if (el){ ensureVisible(el); if (!REDUCED){ el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 1600); } } }
-  if (REDUCED) return;
-  const sd = scrollers().map((s, i) => s.scrollTop - prev.scroll[i]);
-  for (const el of $$('.cell[data-id], .stamp-wrap[data-id]')){
-    if (el.closest('.insp-prev')) continue;
-    const id = el.dataset.id, kind = el.classList.contains('cell') ? 'cell' : 'stamp';
-    const img = el.querySelector('img'); if (!img) continue;
-    const to = img.getBoundingClientRect(), p = prev.rects.get(id);
-    const from = (opts.ghost && opts.ghost.id === id) ? opts.ghost.rect : p && p.rect;
-    if (!from){ el.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.75,.25,1)' }); continue; }
-    if ((opts.ghost && opts.ghost.id === id) || p.kind !== kind){ fly(img.currentSrc || img.src, from, to, el); continue; }
-    const delta = sd[kind === 'cell' ? 0 : 1] || 0;
-    const dx = from.left - to.left, dy = from.top - to.top - delta;
-    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-    el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }],
-      { duration: 340, delay: opts.ghost ? 90 : 0, easing: 'cubic-bezier(.25,.8,.25,1)', fill: 'backwards' });
+  const sc = scrollers(), s1 = sc.map(s => s.scrollTop);
+  let focusId = opts.focusId || (opts.ghost && opts.ghost.id);
+  if (!focusId && opts.autoFocus){ // отмена/возврат: если ровно одно фото сменило панель — показываем, куда оно ушло
+    const moved = $$('.cell[data-id], .stamp-wrap[data-id]').filter(el => { const p = prev.rects.get(el.dataset.id); return p && p.kind !== 'fly' && p.kind !== (el.classList.contains('cell') ? 'cell' : 'stamp'); });
+    if (moved.length === 1) focusId = moved[0].dataset.id;
   }
+  const focusEl = focusId && $(`.cell[data-id="${focusId}"], .stamp-wrap[data-id="${focusId}"]`);
+  if (focusEl) ensureVisible(focusEl);
+  if (reduced()){ for (const id of [...FLY.keys()]) cancelFly(id); return; }
+  const comp = sc.map((s, i) => s1[i] - prev.scroll[i]); // сдвиг от перерисовки гасим, а прокрутку к фокусу показываем — лента плавно едет
+  // 1. замеры
+  const ops = [], seen = new Set();
+  for (const el of $$('.cell[data-id], .stamp-wrap[data-id]')){
+    if (el.closest('.insp-prev') || !el.querySelector('img')) continue;
+    const id = el.dataset.id; seen.add(id);
+    ops.push({ el, id, to: poseOf(el), from: (opts.ghost && opts.ghost.id === id) ? opts.ghost.pose : prev.rects.get(id) });
+  }
+  const gone = [...prev.rects].filter(([id, p]) => !seen.has(id) && visible(p));
+  // 2. анимации
+  let moved = false;
+  for (const { el, id, to, from } of ops){
+    if (!from){ appear(el, to); continue; }
+    if (from.kind !== to.kind){ // перелёт между панелями или из «марки» под курсором
+      if (visible(from) && visible(to)) fly(id, el, from, to); else { cancelFly(id); appear(el, to); } // из-за края панели не летаем — просто проявляемся
+      moved = true; continue;
+    }
+    cancelFly(id);
+    const dx = from.cx - to.cx, dy = from.cy - to.cy - comp[to.kind === 'cell' ? 0 : 1];
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(from.rot - to.rot) < .5) continue;
+    moved = true;
+    const stamp = to.kind === 'stamp'; // у марок наклон сохраняется на всём пути
+    el.animate([{ transform: `translate(${dx}px,${dy}px)` + (stamp ? ` rotate(${from.rot}deg)` : '') }, { transform: stamp ? `rotate(${to.rot}deg)` : 'none' }],
+      { duration: durFor(dx, dy), delay: opts.ghost ? 70 : 0, easing: EASE, fill: 'backwards' });
+  }
+  for (const [id, p] of gone){ cancelFly(id); vanish(p); }
+  if (focusEl){ focusEl.classList.add('pulse'); setTimeout(() => focusEl.classList.remove('pulse'), 1600); }
+  if (moved) fadeBounds();
 }
-function fly(src, from, to, el){
+function appear(el, to){
+  const r = to.kind === 'stamp' ? `rotate(${to.rot}deg)` : '';
+  el.animate([{ opacity: 0, transform: `scale(.92) ${r}` }, { opacity: 1, transform: r || 'none' }], { duration: 260, easing: EASE });
+}
+function makeFly(p, src, clip){ // копия фото поверх всего: снимок + «бумага» марки, которая проявляется или тает по пути
+  const wrap = document.createElement('div'); wrap.className = 'fly-clip'; wrap.style.clipPath = insetOf(clip || viewBox());
   const f = document.createElement('div'); f.className = 'fly';
-  f.style.cssText = `left:${to.left}px;top:${to.top}px;width:${to.width}px;height:${to.height}px`;
-  f.innerHTML = `<img src="${src}" alt="">`;
-  document.body.appendChild(f); el.style.visibility = 'hidden';
-  const a = f.animate([{ transform: `translate(${from.left - to.left}px,${from.top - to.top}px) scale(${from.width / to.width},${from.height / to.height})` }, { transform: 'none' }],
-    { duration: 360, easing: 'cubic-bezier(.2,.75,.25,1)' });
+  f.style.cssText = `left:${p.cx - p.w / 2}px;top:${p.cy - p.h / 2}px;width:${p.w}px;height:${p.h}px`;
+  f.innerHTML = `<i class="fly-paper"></i><img src="${src}" alt="">`;
+  wrap.appendChild(f); document.body.appendChild(wrap);
+  return { f, wrap, paper: f.firstElementChild };
+}
+function fly(id, el, from, to){
+  cancelFly(id);
+  const c0 = from.box || from.clip || viewBox(), c1 = to.clip || viewBox();
+  const { f, wrap, paper } = makeFly(to, to.src, c1), dx = from.cx - to.cx, dy = from.cy - to.cy, dur = durFor(dx, dy) + 40;
+  el.style.visibility = 'hidden';
+  const a = f.animate([{ transform: `translate(${dx}px,${dy}px) rotate(${from.rot}deg) scale(${from.w / to.w},${from.h / to.h})` }, { transform: `rotate(${to.rot}deg)` }], { duration: dur, easing: EASE });
+  paper.animate([{ opacity: from.paper }, { opacity: to.paper }], { duration: dur, easing: 'ease-in-out', fill: 'both' });
+  wrap.animate([{ clipPath: insetOf(c0) }, { clipPath: insetOf(c1) }], { duration: dur, easing: EASE, fill: 'both' });
+  const rec = { f, wrap, paper, a, src: to.src };
   let over = false;
-  const done = () => { if (over) return; over = true; el.style.visibility = ''; f.remove(); };
-  a.onfinish = done; a.oncancel = done; setTimeout(done, 600); // страховка, если анимацию придержал браузер
+  rec.done = () => { if (over) return; over = true; if (FLY.get(id) === rec) FLY.delete(id); el.style.visibility = ''; wrap.remove(); };
+  a.onfinish = rec.done; a.oncancel = rec.done; setTimeout(rec.done, dur + 300); // страховка, если анимацию придержал браузер
+  FLY.set(id, rec);
+}
+function cancelFly(id){ const rec = FLY.get(id); if (rec){ FLY.delete(id); rec.a.cancel(); rec.done(); } }
+function vanish(p){ // фото пропало из ленты и буфера (удалили) — тает на месте
+  const { f, wrap, paper } = makeFly(p, p.src, p.box || p.clip); paper.style.opacity = p.paper;
+  const a = f.animate([{ opacity: 1, transform: `rotate(${p.rot}deg)` }, { opacity: 0, transform: `rotate(${p.rot}deg) scale(.9)` }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+  const rm = () => wrap.remove(); a.onfinish = rm; setTimeout(rm, 600);
 }
 
 // ---------- загрузка ----------
@@ -951,7 +1041,7 @@ const SRC_MAX = 1440, SRC_Q = .85, THUMB_Q = .82;
 const UP = { queue: [], total: 0, done: 0, frac: 0, name: '', stage: '', running: false, added: 0, promise: null };
 function renderUpload(){
   const el = $('#upload'); if (!el) return;
-  el.hidden = !UP.running; if (!UP.running) return;
+  $('#upWrap').classList.toggle('on', UP.running); if (!UP.running) return; // карточка плавно раскрывается, буфер не прыгает
   const pct = Math.min(100, Math.round((UP.done + UP.frac) / Math.max(1, UP.total) * 100));
   $('#upText').textContent = UP.total > 1 ? `загружаю ${Math.min(UP.done + 1, UP.total)} из ${UP.total}` : 'загружаю фото';
   $('#upPct').textContent = pct + '%';
@@ -1005,10 +1095,9 @@ async function uploadOne(f, acc, opt = {}){ // opt.quiet — не класть �
   await API.put(base + '/meta', p); upStep(1);
   if (S.acc !== acc) return false;
   p.manual = {};
+  const prev = opt.quiet ? null : captureRects();
   S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); if (opt.quiet) return id; S.layout.buffer.unshift(id);
-  renderBuffer();
-  const el = $(`.stamp-wrap[data-id="${id}"]`);
-  if (el && !REDUCED) el.animate([{ opacity: 0, transform: 'translateY(-10px) scale(.9)' }, { opacity: 1, transform: 'rotate(var(--rot))' }], { duration: 300, easing: 'cubic-bezier(.2,.75,.25,1)' });
+  renderBuffer(); animateFrom(prev); // новая марка проявляется, остальные плавно сдвигаются
   return id;
 }
 
@@ -1160,11 +1249,11 @@ function drawBounds(){
 function renderInspector(){
   const el = $('#inspector'), id = S.selected, p = id && S.photos.get(id);
   if (!p){
-    el.innerHTML = `<div class="panel-head"><h2>марка</h2></div>
+    setHTML(el, `<div class="panel-head"><h2>марка</h2></div>
       <div class="empty"><div class="ghost-stamp">${I.star}</div><h3>выбери фото</h3>
         <p>в буфере или в ленте —<br>здесь будут его цвет и признаки</p>
         <p style="margin-top:12px"><b>перетащи</b> — переставить · <b>2× клик</b> — обрезать<br><b>правый клик</b> — все действия</p>
-        <button class="btn-text" data-open="help">горячие клавиши</button></div>`;
+        <button class="btn-text" data-open="help">горячие клавиши</button></div>`);
     return;
   }
   const z = zoneOf(id), e = eff(p), a = p.auto || {};
@@ -1180,7 +1269,7 @@ function renderInspector(){
       <div class="seg">${A.opts.map(([v, l]) => `<button data-set="${k}" data-val="${v}" class="${e[k] === v ? 'on' : ''}${autoV === v ? ' auto' : ''}">${l}</button>`).join('')}</div></div>`;
   };
   const pal = (a.palette || []).map(c => `<button class="pal${e.color && dE(e.color, c.lab) < .6 ? ' on' : ''}" data-color="${c.lab.join(',')}" style="background:${lab2hex(c.lab)}" title="${colorName(c.lab)} · ${Math.round(c.w * 100)}% кадра"></button>`).join('');
-  el.innerHTML = `<div class="panel-head"><h2>марка</h2><button class="icon-btn" id="inspMore" style="margin-left:auto" title="действия">${I.more}</button></div>
+  setHTML(el, `<div class="panel-head"><h2>марка</h2><button class="icon-btn" id="inspMore" style="margin-left:auto" title="действия">${I.more}</button></div>
     <div class="panel-body">
       <div class="insp-top">
         <div class="insp-prev" title="обрезать"><div class="stamp-wrap" style="--rot:-1.5deg"><div class="stamp"><div class="stamp-img"><img src="${thumbUrl(p)}" alt="" draggable="false"></div></div></div><span class="crop-hint">${I.crop}</span></div>
@@ -1191,7 +1280,7 @@ function renderInspector(){
         <div class="pal-row">${pal}<label class="pal pick" title="свой цвет">${I.plus}<input type="color" id="pickColor" value="${e.color ? lab2hex(e.color) : '#888888'}"></label></div></div>` : ''}
       ${['light', 'warm', 'busy', 'person'].filter(isOn).map(seg).join('')}
       <p class="auto-note"><i></i>так определилось автоматически</p>
-    </div>`;
+    </div>`);
 }
 function neighborMap(s){
   let h = '';
@@ -1204,12 +1293,12 @@ function neighborMap(s){
 }
 function renderSettings(){
   const s = S.settings;
-  $('#settings').innerHTML = `<div class="panel-head"><h2>раскладка</h2><button class="icon-btn" data-close="settings" style="margin-left:auto" title="закрыть"><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+  setHTML($('#settings'), `<div class="panel-head"><h2>раскладка</h2><button class="icon-btn" data-close="settings" style="margin-left:auto" title="закрыть"><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
     <div class="panel-body">
       <div class="set-sec"><h4>что разносить подальше</h4>
-        ${ATTR_KEYS.map(k => `<div class="attr-row ${isOn(k) ? 'on' : 'off'}"><button class="switch${isOn(k) ? ' on' : ''}" data-toggle="${k}" role="switch" aria-checked="${isOn(k)}" title="${isOn(k) ? 'выключить' : 'включить'}"></button><span class="nm">${ATTR_TITLE[k]}</span>${isOn(k) ? `<input type="range" data-k="w.${k}" min="0.2" max="3" step="0.1" value="${s.weights[k]}" title="важность">` : ''}</div>`).join('')}
+        ${ATTR_KEYS.map(k => `<div class="attr-row ${isOn(k) ? 'on' : 'off'}"><button class="switch${isOn(k) ? ' on' : ''}" data-toggle="${k}" role="switch" aria-checked="${isOn(k)}" title="${isOn(k) ? 'выключить' : 'включить'}"></button><span class="nm">${ATTR_TITLE[k]}</span><input type="range" data-k="w.${k}" min="0.2" max="3" step="0.1" value="${s.weights[k]}" title="важность"></div>`).join('')}
         <p class="note">ползунок — насколько важно не ставить рядом похожие</p></div>
-      ${isOn('color') ? `<div class="set-sec"><h4>когда цвета считать одинаковыми</h4><input type="range" data-k="tol" min="5" max="60" step="1" value="${s.tol}"><div class="range-labels"><span>строже</span><span>мягче</span></div></div>` : ''}
+      <div class="set-sec"${isOn('color') ? '' : ' hidden'}><h4>когда цвета считать одинаковыми</h4><input type="range" data-k="tol" min="5" max="60" step="1" value="${s.tol}"><div class="range-labels"><span>строже</span><span>мягче</span></div></div>
       <div class="set-sec"><h4>кто считается соседом</h4>
         <div class="nbr"><div class="nbr-map" id="nbrMap">${neighborMap(s)}</div>
           <div class="nbr-sliders"><div class="sl-title">по диагонали</div><input type="range" data-k="wDiag" min="0" max="1" step="0.05" value="${s.wDiag}">
@@ -1219,7 +1308,7 @@ function renderSettings(){
         <div class="row" style="margin-top:12px"><button class="btn quiet sm" id="relayoutBtn">собрать заново</button></div>
         <p class="note">после ручных перестановок лента поправляется аккуратно, двигая минимум фото. «собрать заново» и ✦ — полная пересборка.</p></div>
       <div class="set-sec"><h4>цветовая карта</h4><div class="row-between" style="align-items:flex-start"><div class="minimap" id="minimap"></div><p class="note" style="margin:0">главный цвет каждого поста по порядку. бледные — уже опубликованы.</p></div></div>
-    </div>`;
+    </div>`);
   renderMiniMap(); updateTopbar();
 }
 function renderMiniMap(){ const el = $('#minimap'); if (el) el.innerHTML = displayList().slice(0, 36).map(d => `<i class="${d.zone}" style="background:${lab2hex(eff(S.photos.get(d.id)).color)}"></i>`).join(''); }
@@ -1229,6 +1318,20 @@ function updateTopbar(){
   const rb = $('#relayoutBtn'); if (rb) rb.classList.toggle('blue', S.dirty);
 }
 function renderAll(){ renderBuffer(); renderGrid(); renderInspector(); renderMiniMap(); updateTopbar(); }
+// Панели (марка, раскладка) обновляются на месте: меняются только атрибуты и текст,
+// поэтому переключатели и кнопки плавно переключаются, а прокрутка панели не сбрасывается.
+function morph(a, b){
+  for (const { name } of [...a.attributes]) if (!b.hasAttribute(name)) a.removeAttribute(name);
+  for (const { name, value } of [...b.attributes]) if (a.getAttribute(name) !== value) a.setAttribute(name, value);
+  if (a.tagName === 'INPUT' && a.value !== b.value) a.value = b.value;
+  morphChildren(a, b);
+}
+function morphChildren(a, b){
+  const ac = a.childNodes, bc = [...b.childNodes];
+  if (ac.length !== bc.length || bc.some((n, i) => n.nodeName !== ac[i].nodeName)){ a.replaceChildren(...bc); return; }
+  bc.forEach((n, i) => { const o = ac[i]; if (n.nodeType === 1) morph(o, n); else if (o.data !== n.data) o.data = n.data; });
+}
+function setHTML(el, html){ const t = document.createElement('template'); t.innerHTML = html; morphChildren(el, t.content); }
 // Клетки и марки не пересоздаются, если не изменились: браузеру не нужно заново
 // раскладывать и декодировать превью — отсюда меньше подвисаний после перетаскивания.
 function reconcile(box, items){
@@ -1268,7 +1371,16 @@ function toast(msg, opt = {}){
 }
 
 // ---------- меню ----------
-function closeMenus(){ $('#ctx').hidden = true; $('#accPop').hidden = true; }
+// Окна и меню появляются и исчезают плавно: класс out — короткая анимация ухода, потом hidden
+function openLayer(el){ if (!el) return; clearTimeout(el._t); el.classList.remove('out'); el.hidden = false; }
+function closeLayer(el){
+  if (!el || el.hidden) return;
+  clearTimeout(el._t);
+  if (reduced()){ el.hidden = true; el.classList.remove('out'); return; }
+  el.classList.add('out');
+  el._t = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, el.classList.contains('menu') ? 120 : 160);
+}
+function closeMenus(){ closeLayer($('#ctx')); closeLayer($('#accPop')); }
 function openMenu(id, x, y){
   const z = zoneOf(id); if (!z) return;
   const items = [];
@@ -1281,7 +1393,7 @@ function openMenu(id, x, y){
   it('crop', 'crop', 'обрезать', '2× клик');
   if (z.zone !== 'buffer') it('toBuffer', 'inbox', 'убрать в буфер', '⌫');
   it('delete', 'trash', 'удалить', z.zone === 'buffer' ? '⌫' : '', 'danger');
-  const m = $('#ctx'); m.innerHTML = items.join(''); m.dataset.id = id; m.hidden = false; $('#accPop').hidden = true;
+  const m = $('#ctx'); m.innerHTML = items.join(''); m.dataset.id = id; openLayer(m); closeLayer($('#accPop'));
   const r = m.getBoundingClientRect();
   m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
   m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
@@ -1290,48 +1402,57 @@ $('#ctx').addEventListener('click', e => { const b = e.target.closest('[data-act
 
 // ---------- обрезка ----------
 let CROP = null, cropDrag = null;
+// Окно открывается сразу: размеры исходника известны заранее, а пока он грузится, в рамке — уже загруженное превью.
 async function openCrop(id){
   closeMenus();
-  let blob = null;
-  try { const r = await fetch(accUrl(`/photos/${id}/src`)); if (r.ok) blob = await r.blob(); } catch (e){ console.warn(e); }
-  if (!blob) return toast('исходник не найден');
-  const img = await blobToImage(blob), p = S.photos.get(id); if (!p) return;
-  CROP = { id, img, crop: { ...p.crop } };
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  const sc = Math.min(Math.min(560, innerWidth - 300) / iw, Math.min(560, innerHeight - 180) / ih);
-  CROP.W = Math.round(iw * sc); CROP.H = Math.round(ih * sc);
+  const p = S.photos.get(id); if (!p) return;
+  const iw = p.w, ih = p.h, sc = Math.min(Math.min(560, innerWidth - 300) / iw, Math.min(560, innerHeight - 180) / ih);
+  CROP = { id, img: null, crop: { ...p.crop }, iw, ih, W: Math.round(iw * sc), H: Math.round(ih * sc) };
   const cv = $('#cropCanvas'), dpr = devicePixelRatio || 1;
   cv.width = CROP.W * dpr; cv.height = CROP.H * dpr; cv.style.width = CROP.W + 'px'; cv.style.height = CROP.H + 'px';
   $('#cropZoom').value = CROP.crop.zoom;
-  $('#cropModal').hidden = false; drawCropUI();
+  openLayer($('#cropModal')); drawCropUI();
+  let blob = null;
+  try { const r = await fetch(accUrl(`/photos/${id}/src`)); if (r.ok) blob = await r.blob(); } catch (e){ console.warn(e); }
+  if (!CROP || CROP.id !== id) return; // окно успели закрыть
+  if (!blob){ closeCrop(); return toast('исходник не найден'); }
+  const img = await blobToImage(blob);
+  if (!CROP || CROP.id !== id) return;
+  CROP.img = img; CROP.iw = img.naturalWidth; CROP.ih = img.naturalHeight; drawCropUI();
 }
 function setCropCenter(cx, cy){
-  const { img, crop } = CROP, iw = img.naturalWidth, ih = img.naturalHeight;
+  const { crop, iw, ih } = CROP;
   crop.cx = cx; crop.cy = cy; const r = cropRect(iw, ih, crop);
   crop.cx = (r.x + r.w / 2) / iw; crop.cy = (r.y + r.h / 2) / ih;
 }
 function drawCropUI(){
-  const { img, crop, W, H } = CROP, ctx = $('#cropCanvas').getContext('2d'), dpr = devicePixelRatio || 1;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H); ctx.drawImage(img, 0, 0, W, H);
-  const sc = W / img.naturalWidth, r = cropRect(img.naturalWidth, img.naturalHeight, crop);
-  const x = r.x * sc, y = r.y * sc, w = r.w * sc, h = r.h * sc;
+  const { img, crop, W, H, iw, ih, id } = CROP, ctx = $('#cropCanvas').getContext('2d'), dpr = devicePixelRatio || 1;
+  const sc = W / iw, r = cropRect(iw, ih, crop), x = r.x * sc, y = r.y * sc, w = r.w * sc, h = r.h * sc;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (img) ctx.drawImage(img, 0, 0, W, H);
+  else { // исходник ещё грузится — показываем превью в рамке
+    ctx.fillStyle = '#e7edf5'; ctx.fillRect(0, 0, W, H);
+    const t = $(`.cell[data-id="${id}"] img, .stamp-wrap[data-id="${id}"] img`);
+    if (t && t.complete && t.naturalWidth){ ctx.drawImage(t, x, y, w, h); $('#cropPreview').getContext('2d').drawImage(t, 0, 0, 300, 400); }
+  }
   ctx.fillStyle = 'rgba(34,49,78,.6)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x, y, w, h); ctx.fill('evenodd');
   ctx.strokeStyle = 'rgba(251,248,242,.45)'; ctx.lineWidth = 1; ctx.beginPath();
   for (let i = 1; i < 3; i++){ ctx.moveTo(x + w * i / 3, y); ctx.lineTo(x + w * i / 3, y + h); ctx.moveTo(x, y + h * i / 3); ctx.lineTo(x + w, y + h * i / 3); }
   ctx.stroke();
   ctx.strokeStyle = '#fbf8f2'; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); ctx.setLineDash([]);
-  $('#cropPreview').getContext('2d').drawImage(drawCrop(img, crop, 300, 400), 0, 0);
+  if (img) $('#cropPreview').getContext('2d').drawImage(drawCrop(img, crop, 300, 400), 0, 0);
 }
-function closeCrop(){ $('#cropModal').hidden = true; CROP = null; cropDrag = null; }
+function closeCrop(){ closeLayer($('#cropModal')); CROP = null; cropDrag = null; }
 async function saveCrop(){
-  if (!CROP) return;
+  if (!CROP || !CROP.img) return;
   const { id, img, crop } = CROP, p = S.photos.get(id); closeCrop(); if (!p) return;
   pushUndo();
   p.crop = { ...crop }; p.auto = analyze(img, p.crop); p.thumbV = (p.thumbV || 1) + 1;
   const tb = await canvasToBlob(drawCrop(img, p.crop, 450, 600), .85);
+  const prev = captureRects(); // лента после обрезки перестраивается — с анимацией
   const old = S.localUrls.get(id); S.localUrls.set(id, URL.createObjectURL(tb)); if (old) URL.revokeObjectURL(old);
   const z = zoneOf(id); if (z && z.zone !== 'buffer'){ if (S.settings.auto) layoutPlan(); else S.dirty = true; }
-  persist(); renderAll();
+  persist(); renderAll(); animateFrom(prev, { focusId: id });
   try { await API.put(accUrl(`/photos/${id}/thumb`), tb); await savePhoto(p); } catch (e){ console.warn(e); setSync('error'); toast('обрезка не сохранилась на сервере'); }
 }
 const cropCv = $('#cropCanvas');
@@ -1356,11 +1477,11 @@ addEventListener('pointermove', e => {
   const p = DND.pending;
   if (p && !DND.active){ if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) return; startDrag(p, e); }
   const d = DND.active;
-  if (d){ // двигаем «марку» и ищем цель не чаще раза в кадр
-    e.preventDefault(); d.x = e.clientX; d.y = e.clientY;
-    if (!d.raf) d.raf = requestAnimationFrame(() => { d.raf = 0; if (DND.active === d) moveDrag(d); });
-  }
+  if (d){ e.preventDefault(); d.x = e.clientX; d.y = e.clientY; requestMove(d); }
 });
+function requestMove(d){ // двигаем «марку» и ищем цель не чаще раза в кадр
+  if (!d.raf) d.raf = requestAnimationFrame(() => { d.raf = 0; if (DND.active === d) moveDrag(d); });
+}
 addEventListener('pointerup', e => { if (DND.active) endDrag(e); DND.pending = null; });
 addEventListener('pointercancel', () => { if (DND.active) endDrag(null); DND.pending = null; });
 function startDrag(p, e){
@@ -1372,7 +1493,7 @@ function startDrag(p, e){
   DND.active = { ...p, ghost: g, srcRect: img.getBoundingClientRect(), target: null, x: e.clientX, y: e.clientY };
   p.el.classList.add('lifted'); document.body.classList.add('dragging');
   moveDrag(DND.active);
-  if (!REDUCED) g.firstElementChild.animate([{ transform: 'scale(.8)', opacity: .6 }, { transform: 'none', opacity: 1 }], { duration: 160, easing: 'ease-out' });
+  if (!reduced()) g.firstElementChild.animate([{ transform: 'scale(.8)', opacity: .6 }, { transform: 'none', opacity: 1 }], { duration: 160, easing: 'ease-out' });
   requestAnimationFrame(autoScroll);
 }
 function moveDrag(d){
@@ -1399,14 +1520,20 @@ function setDropTarget(t){
   if (dropEl && (dropEl !== el || !dropEl.classList.contains(cls))) dropEl.classList.remove('drop-target', 'drop-no', 'drop-in', 'drop-auto');
   dropEl = el; if (el && cls) el.classList.add(cls);
 }
-function autoScroll(){
+// Автопрокрутка у края панели: скорость в пикселях в секунду (не зависит от частоты экрана)
+// и растёт, чем глубже курсор в краевой зоне.
+function autoScroll(now){
   const d = DND.active; if (!d) return;
+  const dt = Math.min(50, now - (d.lastT || now)); d.lastT = now;
   for (const sc of scrollers()){
-    const r = sc.getBoundingClientRect();
+    const r = sc.getBoundingClientRect(), zone = 60;
     if (d.x < r.left || d.x > r.right) continue;
+    let depth = 0;
+    if (d.y < r.top + zone && d.y > r.top - 40) depth = -Math.min(1, (r.top + zone - d.y) / zone);
+    else if (d.y > r.bottom - zone && d.y < r.bottom + 40) depth = Math.min(1, (d.y - (r.bottom - zone)) / zone);
+    if (!depth) continue;
     const before = sc.scrollTop;
-    if (d.y < r.top + 50 && d.y > r.top - 30) sc.scrollTop -= 10;
-    else if (d.y > r.bottom - 50 && d.y < r.bottom + 30) sc.scrollTop += 10;
+    sc.scrollTop += Math.sign(depth) * (180 + 1500 * depth * depth) * dt / 1000;
     if (sc.scrollTop !== before) moveDrag(d); // под неподвижным курсором проехала другая клетка
   }
   requestAnimationFrame(autoScroll);
@@ -1416,25 +1543,31 @@ function endDrag(e){
   if (d.raf){ cancelAnimationFrame(d.raf); d.raf = 0; }
   if (e){ d.x = e.clientX; d.y = e.clientY; moveDrag(d); } // цель — ровно там, где отпустили
   document.body.classList.remove('dragging'); setDropTarget(null);
-  const t = e ? d.target : null, gimg = d.ghost.querySelector('img'), ghostRect = gimg.getBoundingClientRect();
+  const t = e ? d.target : null, g = d.ghost, gimg = g.querySelector('img'), gr = gimg.getBoundingClientRect();
   if (!t || t.kind === 'self' || !t.ok){
     if (t && t.why) toast(t.why);
-    const back = d.el.isConnected ? d.el.querySelector('img').getBoundingClientRect() : d.srcRect;
-    const a = d.ghost.animate([{ transform: d.ghost.style.transform, opacity: 1 }, { transform: `translate(${back.left - 7}px,${back.top - 7}px) rotate(0deg)`, opacity: .3 }], { duration: REDUCED ? 0 : 220, easing: 'ease-in' });
-    a.onfinish = () => { d.ghost.remove(); d.el.classList.remove('lifted'); };
+    // марка возвращается точно на место — по центру, в размер и наклон исходника, — а исходник одновременно проявляется
+    d.el.classList.remove('lifted');
+    const src = d.el.isConnected ? poseOf(d.el) : null, from = g.style.transform;
+    const to = src && visible(src)
+      ? `translate(${src.cx - 46}px,${src.cy - 59}px) rotate(${src.rot}deg) scale(${src.w / gimg.offsetWidth})`
+      : `${from} scale(.85)`; // место уехало из виду — просто тает
+    const a = g.animate([{ transform: from, opacity: 1 }, { opacity: 1, offset: .55 }, { transform: to, opacity: 0 }], { duration: reduced() ? 0 : 240, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'forwards' });
+    const rm = () => g.remove(); a.onfinish = rm; a.oncancel = rm; setTimeout(rm, 700);
     return;
   }
-  d.ghost.remove(); d.el.classList.remove('lifted');
-  handleDrop(d.id, t, { ghost: { id: d.id, rect: ghostRect } });
+  const pose = { cx: gr.left + gr.width / 2, cy: gr.top + gr.height / 2, w: gimg.offsetWidth, h: gimg.offsetHeight, rot: -4, kind: 'ghost', paper: 1, clip: null, src: gimg.currentSrc || gimg.src };
+  g.remove(); d.el.classList.remove('lifted');
+  handleDrop(d.id, t, { ghost: { id: d.id, pose } });
 }
 
 // ---------- клики и меню ----------
 document.addEventListener('click', e => {
   if (performance.now() - DND.lastEnd < 250) return;
-  const open = e.target.closest('[data-open]'); if (open && open.dataset.open === 'help'){ $('#helpModal').hidden = false; return; }
+  const open = e.target.closest('[data-open]'); if (open && open.dataset.open === 'help'){ openLayer($('#helpModal')); return; }
   const cl = e.target.closest('[data-close]');
-  if (cl){ const w = cl.dataset.close; if (w === 'crop') closeCrop(); if (w === 'help') $('#helpModal').hidden = true; if (w === 'settings') toggleSettings(false); return; }
-  if (e.target.classList.contains('modal')){ if (e.target.id === 'cropModal') closeCrop(); else e.target.hidden = true; return; }
+  if (cl){ const w = cl.dataset.close; if (w === 'crop') closeCrop(); if (w === 'help') closeLayer($('#helpModal')); if (w === 'settings') toggleSettings(false); return; }
+  if (e.target.classList.contains('modal')){ if (e.target.id === 'cropModal') closeCrop(); else closeLayer(e.target); return; }
   const hb = e.target.closest('.hb');
   if (hb){
     const id = hb.closest('[data-id]').dataset.id;
@@ -1453,7 +1586,7 @@ document.addEventListener('contextmenu', e => {
   const c = e.target.closest('.cell[data-id], .stamp-wrap[data-id]'); if (!c || c.closest('.insp-prev')) return;
   e.preventDefault(); select(c.dataset.id); openMenu(c.dataset.id, e.clientX, e.clientY);
 });
-['#feedScroll', '#bufferBody'].forEach(s => $(s).addEventListener('scroll', () => { $('#ctx').hidden = true; }, { passive: true }));
+['#feedScroll', '#bufferBody'].forEach(s => $(s).addEventListener('scroll', () => { closeLayer($('#ctx')); if (DND.active) requestMove(DND.active); }, { passive: true })); // колесо во время перетаскивания — цель пересчитывается
 $('#bufferBody').addEventListener('scroll', e => $('#bufferPanel').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
 
 $('#inspector').addEventListener('click', e => {
@@ -1520,17 +1653,18 @@ document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('#bufferPa
 document.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){ e.preventDefault(); $('#bufferPanel').classList.remove('drop-in'); addFiles(e.dataTransfer.files); } });
 
 // ---------- клавиатура (по коду клавиши — работает и в русской раскладке) ----------
+const shown = el => !el.hidden && !el.classList.contains('out'); // окно, которое уже закрывается, клавиши не перехватывает
 document.addEventListener('keydown', e => {
-  if (!$('#gate').hidden){ if (e.key === 'Escape' && S.acc) hideGate(); return; }
-  if (!$('#cropModal').hidden){ if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') saveCrop(); return; }
-  if (!$('#helpModal').hidden){ if (e.key === 'Escape' || e.key === '?') $('#helpModal').hidden = true; return; }
+  if (shown($('#gate'))){ if (e.key === 'Escape' && S.acc) hideGate(); return; }
+  if (shown($('#cropModal'))){ if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') saveCrop(); return; }
+  if (shown($('#helpModal'))){ if (e.key === 'Escape' || e.key === '?') closeLayer($('#helpModal')); return; }
   if (e.target.matches && e.target.matches('input:not([type=range]), textarea, select')) return;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.code === 'KeyZ'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && e.code === 'KeyY'){ e.preventDefault(); redo(); return; }
   if (mod || e.altKey) return;
-  if (e.key === 'Escape'){ if (!$('#ctx').hidden || !$('#accPop').hidden) return closeMenus(); if ($('#settings').classList.contains('open')) return toggleSettings(false); return select(null); }
-  if (e.key === '?' || (e.code === 'Slash' && e.shiftKey)){ $('#helpModal').hidden = false; return; }
+  if (e.key === 'Escape'){ if (shown($('#ctx')) || shown($('#accPop'))) return closeMenus(); if ($('#settings').classList.contains('open')) return toggleSettings(false); return select(null); }
+  if (e.key === '?' || (e.code === 'Slash' && e.shiftKey)){ openLayer($('#helpModal')); return; }
   const id = S.selected; if (!id) return;
   const z = zoneOf(id); if (!z) return;
   const digit = { Digit1: 'none', Digit2: 'people', Digit3: 'me', Digit4: 'selfie' }[e.code];
@@ -1608,9 +1742,9 @@ async function lockAccount(){
 let GATE = { mode: 'list', acc: null };
 function showGate(mode = 'list', accId = null){
   GATE = { mode: mode === 'list' && !S.accounts.length ? 'new' : mode, acc: accId };
-  closeMenus(); $('#gate').hidden = false; renderGate();
+  closeMenus(); openLayer($('#gate')); renderGate();
 }
-function hideGate(){ $('#gate').hidden = true; }
+function hideGate(){ closeLayer($('#gate')); }
 const pinBoxes = () => `<div class="pin-boxes" data-pin>${'<input type="password" inputmode="numeric" autocomplete="off" aria-label="цифра PIN">'.repeat(4)}</div>`;
 const pinValue = () => $$('#gateBody .pin-boxes input').map(i => i.value).join('');
 function renderGate(){
@@ -1700,10 +1834,10 @@ $('#gate').addEventListener('paste', e => {
   e.preventDefault(); const inputs = $$('#gateBody .pin-boxes input'); [...digits].forEach((d, i) => { inputs[i].value = d; }); inputs[digits.length - 1].focus();
   if (digits.length === 4 && (GATE.mode === 'pin' || GATE.mode === 'changepin')) submitGate();
 });
-$('#accBtn').addEventListener('click', e => { e.stopPropagation(); $('#ctx').hidden = true; $('#accPop').hidden = !$('#accPop').hidden; });
+$('#accBtn').addEventListener('click', e => { e.stopPropagation(); closeLayer($('#ctx')); const m = $('#accPop'); (m.hidden || m.classList.contains('out')) ? openLayer(m) : closeLayer(m); });
 $('#accPop').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  $('#accPop').hidden = true;
+  closeLayer($('#accPop'));
   if (b.dataset.acc) return switchAccount(b.dataset.acc);
   if (b.dataset.accAct === 'lock') return lockAccount();
   showGate(b.dataset.accAct);
