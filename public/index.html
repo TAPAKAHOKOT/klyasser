@@ -917,17 +917,18 @@ function fly(src, from, to, el){
 function loadImage(src){ return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('decode')); img.src = src; }); }
 async function blobToImage(blob){ const url = URL.createObjectURL(blob); try { return await loadImage(url); } finally { URL.revokeObjectURL(url); } }
 // HEIC (фото с айфона): Safari открывает сам, для остальных браузеров при первом HEIC
-// подгружаем конвертер heic2any (libheif) и переводим в JPEG прямо в браузере
+// подгружаем конвертер heic-to (свежий libheif, понимает 10-битные HEIC новых айфонов)
+// и переводим в JPEG прямо в браузере. heic2any тут не годится: 10-битные HEIC он превращает в зелёную кашу.
 const isHeic = f => /image\/hei[cf]/i.test(f.type || '') || /\.(heic|heif)$/i.test(f.name || '');
 let heicLib = null;
 function loadHeicLib(){
   return heicLib ||= new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-    s.integrity = 'sha384-OTofQ0MEeiSgh62havBcemCIK0gqj809wX6UA0uPISNMRnR6NZyCdGzX3SbLrgwL';
+    s.src = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/iife/heic-to.js';
+    s.integrity = 'sha384-ZUCbebcZz1ccUd6VJI4E3dszgWBQOaMQYQ2Tfh7zp+LY0Wf15c9USciIQPWwXRSC';
     s.crossOrigin = 'anonymous';
-    s.onload = () => window.heic2any ? res(window.heic2any) : rej(new Error('heic2any'));
-    s.onerror = () => { heicLib = null; rej(new Error('heic2any не загрузился')); };
+    s.onload = () => window.HeicTo ? res(window.HeicTo) : rej(new Error('heic-to'));
+    s.onerror = () => { heicLib = null; rej(new Error('heic-to не загрузился')); };
     document.head.appendChild(s);
   });
 }
@@ -939,9 +940,7 @@ async function decodeImage(f, onHeic){
     if (onHeic) onHeic();
     else if (!heicToastShown){ heicToastShown = true; toast('перевожу HEIC в JPEG…'); }
     const convert = await loadHeicLib();
-    let out = await convert({ blob: f, toType: 'image/jpeg', quality: .92 });
-    if (Array.isArray(out)) out = out[0];
-    return await blobToImage(out);
+    return await blobToImage(await convert({ blob: f, type: 'image/jpeg', quality: .92 }));
   }
 }
 // Оригиналы не храним: фото уменьшается до 1440 px по длинной стороне (это высота кадра 3:4 в Instagram,

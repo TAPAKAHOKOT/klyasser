@@ -168,8 +168,9 @@ docs/tools/         screenshot script (headless Chrome) and the demo scene gener
 - Photos and layouts are stored only on your server or in your Cloudflare account; analysis runs locally in the browser.
 - PINs are hashed (scrypt on Node, PBKDF2 on Workers). Sign-in uses a signed `HttpOnly` cookie,
   and every 5 wrong PINs lock the account for 1, 2, 4… up to 32 minutes.
-- Third-party requests: Google Fonts, and the HEIC converter from jsDelivr (pinned version with SRI),
-  which is loaded only when a HEIC photo is added in a browser that can't open it natively.
+- Third-party requests: Google Fonts, and the HEIC converter [heic-to](https://github.com/hoppergee/heic-to)
+  (libheif, LGPL-3.0) from jsDelivr — unmodified, pinned version with SRI, loaded only when a HEIC photo
+  is added in a browser that can't open it natively.
 
 ## Updating the screenshots
 
