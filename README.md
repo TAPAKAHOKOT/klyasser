@@ -55,6 +55,9 @@ while letting you pin any photo exactly where you want it.
 - **Light storage** — photos are downscaled to 1440 px (the height of a 3:4 Instagram post) and re-encoded,
   so a 5–20 MB original takes ~100–250 KB. Originals are never stored; EXIF and location are stripped.
 - **Upload queue with progress** — add more photos while the previous ones are still uploading.
+- **Import from Instagram** — drop the official data export (Settings → Accounts Center → Download your information,
+  JSON) as a ZIP or folder: already published posts land in the grid in the right order, carousels use their first
+  photo, reels use a video frame, and re-importing never creates duplicates.
 - **Several accounts, no sign-up** — each Instagram account has its own photos, layout and set of
   features, protected by a 4-digit PIN. New accounts can require an invite code.
 - **Safe on two computers at once** — versioned saves never overwrite a newer layout.

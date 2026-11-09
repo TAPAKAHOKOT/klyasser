@@ -245,6 +245,7 @@ const server = http.createServer(async (req, res) => {
     if (!p.startsWith('/api/')){
       if (req.method !== 'GET' && req.method !== 'HEAD') throw httpError(405, 'метод не поддерживается');
       if (p === '/' || p === '/index.html') return await sendFile(res, path.join(__dirname, 'public', 'index.html'), 'text/html; charset=utf-8', 'no-cache');
+      if (/^\/[a-z0-9-]+\.js$/i.test(p)) return await sendFile(res, path.join(__dirname, 'public', p.slice(1)), 'text/javascript; charset=utf-8', 'no-cache');
       throw httpError(404, 'не найдено');
     }
     for (const [method, re, handler] of ROUTES){

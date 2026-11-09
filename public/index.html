@@ -855,7 +855,7 @@ function computeClashes(D){
   const cells = D.map(() => new Set()), F = D.map(d => eff(S.photos.get(d.id))), w = weightsOf(S.settings);
   let pairs = 0;
   const check = (i, j) => {
-    const parts = simParts(F[i], F[j], S.settings); let any = false;
+    if (D[i].zone !== 'plan' && D[j].zone !== 'plan') return; const parts = simParts(F[i], F[j], S.settings); let any = false; // опубликованное уже не переставить — не шумим
     for (const k in parts){ if (!w[k]) continue; if (parts[k] >= (k === 'color' ? .5 : .99)){ cells[i].add(k); cells[j].add(k); any = true; } }
     if (any) pairs++;
   };
@@ -987,7 +987,7 @@ async function runUploads(){
   if (S.acc === acc){ persist(); renderAll(); }
   if (n) toast(n === 1 ? 'фото в буфере' : `в буфере +${n}`);
 }
-async function uploadOne(f, acc){
+async function uploadOne(f, acc, opt = {}){ // opt.quiet — не класть в буфер (импорт сам решит куда), opt.ig — откуда из Instagram
   const img = await decodeImage(f, () => upStep(.05, 'перевожу из HEIC')); upStep(.15, 'сжимаю');
   const sc = Math.min(1, SRC_MAX / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
@@ -995,7 +995,7 @@ async function uploadOne(f, acc){
   const sctx = src.getContext('2d'); sctx.imageSmoothingQuality = 'high'; sctx.drawImage(img, 0, 0, w, h);
   const id = uid(), crop = { cx: .5, cy: .5, zoom: 1 };
   const [srcBlob, thumbBlob] = await Promise.all([canvasToBlob(src, SRC_Q), canvasToBlob(drawCrop(src, crop, 450, 600), THUMB_Q)]);
-  const p = { id, name: f.name, w, h, crop, auto: analyze(src, crop), thumbV: 1, addedAt: Date.now(), bytes: srcBlob.size + thumbBlob.size };
+  const p = { id, name: f.name, w, h, crop, auto: analyze(src, crop), thumbV: 1, addedAt: Date.now(), bytes: srcBlob.size + thumbBlob.size, ...(opt.ig ? { ig: opt.ig } : {}) };
   upStep(.3, 'отправляю');
   if (S.acc !== acc) return false;
   setSync('saving');
@@ -1005,11 +1005,11 @@ async function uploadOne(f, acc){
   await API.put(base + '/meta', p); upStep(1);
   if (S.acc !== acc) return false;
   p.manual = {};
-  S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); S.layout.buffer.unshift(id);
+  S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); if (opt.quiet) return id; S.layout.buffer.unshift(id);
   renderBuffer();
   const el = $(`.stamp-wrap[data-id="${id}"]`);
   if (el && !REDUCED) el.animate([{ opacity: 0, transform: 'translateY(-10px) scale(.9)' }, { opacity: 1, transform: 'rotate(var(--rot))' }], { duration: 300, easing: 'cubic-bezier(.2,.75,.25,1)' });
-  return true;
+  return id;
 }
 
 // удаление с возможностью вернуть: с сервера стираем через 6 секунд
@@ -1737,6 +1737,31 @@ window.__kl = { S, API, addFiles, layoutPlan, renderAll, loadAccount, handleDrop
   const a = S.accounts.find(x => x.id === cur) || S.accounts.find(x => x.unlocked);
   if (a && a.unlocked) return loadAccount(a.id);
   showGate(a ? 'pin' : 'list', a ? a.id : null);
+})();
+
+// ---------- импорт из Instagram: модуль грузится по первому клику или когда в окно бросили ZIP/папку ----------
+(function(){
+  let mod = null;
+  const load = () => mod ||= new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = 'import-instagram.js?v=1';
+    s.onload = () => window.KlyasserImport ? res(window.KlyasserImport) : rej(new Error('import'));
+    s.onerror = () => { mod = null; rej(new Error('import')); };
+    document.head.appendChild(s);
+  });
+  const open = input => { if (!S.acc) return toast('сначала открой аккаунт'); load().then(m => m.open(input)).catch(() => toast('не получилось открыть импорт')); };
+  const link = document.createElement('button');
+  link.className = 'btn-text'; link.style.cssText = 'margin-top:8px;font-size:12px';
+  link.innerHTML = I.post + 'импорт из Instagram';
+  link.addEventListener('click', () => open());
+  $('.buffer-top').appendChild(link);
+  document.addEventListener('drop', e => {
+    const dt = e.dataTransfer; if (!dt || !dt.files || !dt.files.length || DND.active) return;
+    const f = dt.files[0], isZip = /\.zip$/i.test(f.name) || /zip/.test(f.type || '');
+    const entry = dt.items && dt.items[0] && dt.items[0].webkitGetAsEntry ? dt.items[0].webkitGetAsEntry() : null;
+    if (!isZip && !(entry && entry.isDirectory)) return; // обычные фото — как раньше, в буфер
+    e.preventDefault(); e.stopPropagation(); $('#bufferPanel').classList.remove('drop-in');
+    open(isZip ? { zip: f } : { dirEntry: entry });
+  }, true);
 })();
 </script>
 </body>
