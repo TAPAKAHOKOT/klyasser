@@ -14,6 +14,7 @@
   <a href="#screenshots">Screenshots</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#getting-started">Getting started</a> ·
+  <a href="LICENSE">MIT license</a> ·
   <a href="README.ru.md">По-русски</a>
 </p>
 
@@ -178,3 +179,7 @@ node docs/tools/shoot.mjs
 
 Needs Google Chrome; set `CHROME=/path/to/chrome` if it isn't in the default location. The script starts
 `server.js` with a throwaway database, fills a demo account and writes `docs/screenshots/*.jpg` and `docs/banner.jpg`.
+
+## License
+
+[MIT](LICENSE)
