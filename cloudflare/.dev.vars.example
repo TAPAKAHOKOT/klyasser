@@ -1,0 +1,4 @@
+# Скопируй в .dev.vars для локального `npm run dev`. В проде секрет задаётся через `npx wrangler secret put KLYASSER_SECRET`.
+# Сгенерировать: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+KLYASSER_SECRET=замени-на-длинную-случайную-строку
+# KLYASSER_INVITE=код

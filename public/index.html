@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Кляссер</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z' fill='%23c5343d'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e7dece; --card:#f6f1e7; --card-2:#fbf8f2;
+  --ink:#22314e; --ink-2:#55617a; --ink-3:#8b93a5;
+  --blue:#5b84bd; --blue-deep:#2646a5; --blue-pale:#d5dfee; --blue-mist:#e7edf5;
+  --red:#c5343d; --red-deep:#962430;
+  --line:rgba(34,49,78,.15); --line-2:rgba(34,49,78,.08);
+  --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --radius:20px;
+  --ease:cubic-bezier(.2,.75,.25,1);
+  /* зерно: фильтр строго по размеру плитки + stitchTiles → без стыков */
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .13 0 0 0 0 .17 0 0 0 0 .28 1 0 0 0 -.42'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  --noise-soft:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .13 0 0 0 0 .17 0 0 0 0 .28 .7 0 0 0 -.32'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* пятна потёртости: одна большая картинка на весь экран, без повторов */
+  --blotch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1000' viewBox='0 0 1600 1000' preserveAspectRatio='none'%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0035 .005' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .27 0 0 0 1.25 -.6'/%3E%3C/filter%3E%3Crect width='1600' height='1000' filter='url(%23b)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;overflow:hidden;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;
+  background-color:var(--paper);background-image:var(--noise),var(--blotch);background-size:200px 200px,100% 100%;background-repeat:repeat,no-repeat}
+button{font:inherit;color:inherit}
+img{-webkit-user-drag:none;user-select:none}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.f{fill:currentColor;stroke:none}
+
+/* ---------- каркас: страница не скроллится, скроллятся панели ---------- */
+.app{height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);position:relative}
+.top{display:flex;align-items:center;gap:16px;padding:14px 26px 12px;position:relative;z-index:6}
+.brand{position:relative;display:flex;align-items:center}
+.logo-wrap{background:var(--card-2);padding:0 18px 6px;border-radius:16px;transform:rotate(-2.5deg);box-shadow:0 10px 20px -14px rgba(34,49,78,.8),0 0 0 1px var(--line-2)}
+.logo{font:italic 500 38px/1.05 var(--serif);color:var(--blue-deep);letter-spacing:-.01em}
+.deco-star{position:absolute;left:-9px;top:-9px;width:18px;height:18px;color:var(--red);transform:rotate(12deg)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.sync{width:18px;height:18px;display:grid;place-items:center;opacity:0;transition:opacity .25s}
+.sync svg{width:13px;height:13px;color:var(--blue)}
+.sync.saving{opacity:1;transition-delay:.35s}
+.sync.saving svg{animation:spin 1.2s linear infinite}
+.sync.error{opacity:1}
+.sync.error svg{display:none}
+.sync.error::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.6s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(197,52,61,.25)}50%{box-shadow:0 0 0 6px rgba(197,52,61,.06)}}
+
+.cols{display:grid;grid-template-columns:272px minmax(0,1fr) 336px;gap:20px;padding:0 24px 22px;min-height:0;position:relative;z-index:1}
+.panel{min-height:0;display:flex;flex-direction:column;background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;
+  border-radius:var(--radius);overflow:hidden;position:relative;box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 14px 34px -22px rgba(34,49,78,.6),0 0 0 1px var(--line-2);transition:box-shadow .2s}
+.panel-head{display:flex;align-items:center;gap:10px;padding:16px 18px 10px;flex:none;min-height:60px}
+.panel-head h2{font:italic 500 28px/1 var(--serif);color:var(--blue-deep);margin:0;white-space:nowrap}
+.count{font:500 11px var(--mono);color:var(--ink-3);align-self:flex-end;margin-bottom:3px}
+.panel-body{flex:1;min-height:0;overflow:auto;padding:2px 18px 18px;scrollbar-width:thin;scrollbar-color:rgba(34,49,78,.18) transparent}
+.panel-foot{flex:none;padding:10px 18px 14px;border-top:1px dashed var(--line);display:flex;justify-content:center}
+.panel-foot[hidden]{display:none}
+.hills{position:fixed;left:0;right:0;bottom:0;height:110px;pointer-events:none;z-index:0;opacity:.6}
+.hills svg{width:100%;height:100%;display:block}
+
+/* ---------- кнопки ---------- */
+.icon-btn{width:34px;height:34px;border-radius:50%;border:none;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink-2);transition:background .15s,color .15s;flex:none;padding:0}
+.icon-btn:hover{background:var(--blue-mist);color:var(--blue-deep)}
+.icon-btn:disabled{opacity:.3;cursor:default;background:transparent;color:var(--ink-2)}
+.icon-btn.on{background:var(--blue-deep);color:#fff}
+.icon-btn svg.i{width:17px;height:17px}
+.icon-btn svg.f{width:14px;height:14px}
+.btn{font:600 13px/1 var(--sans);border:none;border-radius:999px;padding:11px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;box-shadow:0 2px 0 var(--red-deep);transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.55;cursor:default;transform:none}
+.btn.blue{background:var(--blue-deep);box-shadow:0 2px 0 #1a3480}
+.btn.quiet{background:var(--card-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.sm{font-size:12px;padding:8px 13px}
+.btn-text{border:none;background:none;padding:6px 4px;font:500 13px var(--sans);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;border-radius:8px}
+.btn-text:hover{color:var(--blue-deep)}
+.btn-text svg.i{width:14px;height:14px}
+
+/* ---------- аккаунт ---------- */
+.acc{position:relative}
+.acc-btn{display:flex;align-items:center;gap:8px;border:none;background:var(--card-2);border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer;
+  box-shadow:0 0 0 1px var(--line),0 8px 16px -12px rgba(34,49,78,.7);font:600 13px var(--sans);max-width:260px;transition:box-shadow .15s}
+.acc-btn:hover{box-shadow:0 0 0 1px var(--blue),0 8px 16px -12px rgba(34,49,78,.7)}
+.acc-btn .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-btn svg.i{width:12px;height:12px;color:var(--ink-3)}
+.ava{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:italic 600 17px/1 var(--serif);color:#fff;flex:none;background:var(--ava,var(--blue-deep));text-transform:lowercase}
+
+/* ---------- меню (аккаунт и правый клик) ---------- */
+.menu{position:absolute;min-width:232px;background:var(--card-2);border-radius:14px;padding:6px;z-index:60;display:flex;flex-direction:column;
+  box-shadow:0 20px 40px -14px rgba(20,28,48,.5),0 0 0 1px var(--line-2);animation:menuIn .14s var(--ease)}
+.menu[hidden]{display:none}
+.menu.ctx{position:fixed}
+.acc-pop{right:0;top:calc(100% + 8px)}
+.mi{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;text-align:left;padding:8px 10px;border-radius:9px;cursor:pointer;font:500 13px var(--sans);color:var(--ink)}
+.mi:hover,.mi:focus-visible{background:var(--blue-mist);outline:none}
+.mi svg.i{color:var(--ink-2);width:15px;height:15px}
+.mi .kbd{margin-left:auto;font:500 11px var(--mono);color:var(--ink-3);padding-left:12px}
+.mi.danger,.mi.danger svg.i{color:var(--red)}
+.mi .ava{width:24px;height:24px;font-size:14px}
+.mi.cur{font-weight:700}
+.mi .tail{margin-left:auto;color:var(--ink-3);display:flex}
+.mi.cur .tail{color:var(--red)}
+.mh{font:500 10.5px var(--mono);color:var(--ink-3);padding:6px 10px 4px;letter-spacing:.04em}
+.menu hr{border:none;height:1px;background:var(--line-2);margin:5px 6px}
+@keyframes menuIn{from{opacity:0;transform:translateY(-4px) scale(.98)}}
+
+/* ---------- буфер ---------- */
+.drop{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--blue);border-radius:14px;padding:11px 13px;cursor:pointer;color:var(--blue-deep);
+  background:radial-gradient(circle,var(--blue-pale) 1.1px,transparent 1.5px) 0 0/7px 7px;transition:background-color .2s,padding .2s;margin:2px 0 14px}
+.drop:hover{background-color:var(--blue-mist)}
+.drop .plus{width:30px;height:30px;border-radius:50%;background:var(--card-2);display:grid;place-items:center;flex:none;box-shadow:0 0 0 1px var(--line)}
+.drop b{display:block;font:italic 600 18px/1.15 var(--serif)}
+.drop small{font:500 11px var(--mono);color:var(--ink-2)}
+.buffer.is-empty .drop{flex-direction:column;text-align:center;padding:34px 14px;gap:10px}
+.buffer.drop-in{box-shadow:0 0 0 2px var(--blue),0 14px 34px -22px rgba(34,49,78,.6)}
+.buffer.drop-in .drop{background-color:var(--blue-mist)}
+.stamps{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:4px 2px 6px}
+
+.stamp-wrap{position:relative;filter:drop-shadow(0 1px 1.5px rgba(34,49,78,.28)) drop-shadow(0 8px 10px rgba(34,49,78,.12));transform:rotate(var(--rot,0deg));transition:transform .2s;cursor:grab;user-select:none}
+.stamp-wrap:hover{transform:rotate(0deg) translateY(-2px)}
+.stamp{--r:4px;padding:calc(2*var(--r) + 1px);background:var(--card-2);
+  -webkit-mask:radial-gradient(var(--r),#0000 98%,#000) round calc(-1.5*var(--r)) calc(-1.5*var(--r))/calc(3*var(--r)) calc(3*var(--r)),linear-gradient(#000 0 0) no-repeat 50%/calc(100% - 3*var(--r)) calc(100% - 3*var(--r));
+  mask:radial-gradient(var(--r),#0000 98%,#000) round calc(-1.5*var(--r)) calc(-1.5*var(--r))/calc(3*var(--r)) calc(3*var(--r)),linear-gradient(#000 0 0) no-repeat 50%/calc(100% - 3*var(--r)) calc(100% - 3*var(--r))}
+.stamp-wrap.sel .stamp{background:#d5e0f1}
+.stamp-img{aspect-ratio:3/4;overflow:hidden;background:var(--blue-mist)}
+.stamp-img img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.stamp-cap{display:flex;align-items:center;gap:5px;padding:6px 1px 0;font:italic 500 14px/1 var(--serif);color:var(--ink);min-width:0}
+.stamp-cap .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stamp-cap .pv{margin-left:auto;font:500 9.5px var(--mono);color:var(--red);white-space:nowrap}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);flex:none}
+
+/* кнопки при наведении */
+.hb{border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .15s;padding:0;z-index:2}
+.hb svg.i{width:13px;height:13px}
+.cell:hover .hb,.stamp-wrap:hover .hb,.hb:focus-visible{opacity:1}
+.stamp-wrap .hb{position:absolute;width:26px;height:26px;border-radius:50%;box-shadow:0 3px 8px -2px rgba(20,28,48,.45)}
+.stamp-up{right:-7px;top:-7px;background:var(--blue-deep);color:#fff}
+.stamp-more{right:-7px;top:24px;background:var(--card-2);color:var(--ink-2)}
+
+/* ---------- лента ---------- */
+.stats{font:500 11px var(--mono);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:flex-end;margin-bottom:3px}
+.stats b{color:var(--red);font-weight:600}
+.tools{margin-left:auto;display:flex;align-items:center;gap:2px}
+.tools .sep{width:1px;height:18px;background:var(--line);margin:0 5px}
+.feed-scroll{padding:6px 24px 28px;transition:background-color .2s}
+.feed-wrap{position:relative;max-width:450px;margin:0 auto}
+.feed{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.cell{position:relative;aspect-ratio:3/4;background:var(--blue-mist);overflow:hidden;cursor:grab;user-select:none}
+.cell img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;transition:filter .15s}
+.cell.sel{outline:3px solid var(--blue-deep);outline-offset:-3px}
+.cell.clash::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2px var(--red);pointer-events:none}
+.ov-tl{position:absolute;left:5px;top:5px;display:flex;gap:4px;z-index:1}
+.b-num{font:500 10px/1 var(--mono);background:rgba(251,248,242,.93);color:var(--ink);padding:4px 5px;border-radius:5px;opacity:0;transition:opacity .15s}
+.cell:hover .b-num{opacity:1}
+.b-num.next{background:var(--red);color:#fff;opacity:1}
+.ov-tr{position:absolute;right:5px;top:5px;display:flex;gap:4px;align-items:center;z-index:2}
+.more-btn,.lock-btn{width:24px;height:24px;border-radius:50%;background:rgba(251,248,242,.93);color:var(--ink-2);box-shadow:0 1px 3px rgba(20,28,48,.25)}
+.more-btn:hover,.lock-btn:hover{color:var(--blue-deep)}
+.lock-btn.on{opacity:1;background:var(--red);color:#fff}
+.pm{width:24px;height:24px;border-radius:50%;background:rgba(251,248,242,.88);display:grid;place-items:center;color:var(--blue-deep)}
+.pm svg.i{width:14px;height:14px}
+.pub-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:6px;align-items:center;background:var(--red);color:#fff;border-radius:999px;padding:8px 12px;font:600 12px/1 var(--sans);box-shadow:0 6px 14px -6px rgba(20,28,48,.6);white-space:nowrap}
+.pub-btn svg.i{width:13px;height:13px;stroke-width:2}
+.ov-bl{position:absolute;left:4px;bottom:4px;right:4px;display:flex;flex-wrap:wrap;gap:3px;transition:opacity .15s}
+.ctag{font:600 9px/1 var(--mono);background:var(--red);color:#fff;padding:3px 4px;border-radius:4px}
+.ov-info{position:absolute;left:0;right:0;bottom:0;padding:18px 6px 5px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;font:500 9.5px/1.25 var(--mono);color:#fff;
+  background:linear-gradient(transparent,rgba(20,28,48,.8));opacity:0;transition:opacity .15s;pointer-events:none}
+.cell:hover .ov-info{opacity:1}
+.cell:hover .ov-bl{opacity:0}
+.bounds{position:absolute;inset:0;pointer-events:none}
+.bounds svg{position:absolute;inset:0;overflow:visible}
+.bounds path{fill:none;stroke-width:2;stroke-dasharray:6 4;stroke-linecap:round}
+.bounds .pub-line{stroke:var(--red)}
+.bounds .pin-line{stroke:var(--blue-deep);opacity:.6}
+.btag{position:absolute;right:-8px;transform:translateY(-50%);font:600 9.5px/1 var(--mono);color:var(--red);background:var(--card-2);padding:3px 6px;border-radius:4px;box-shadow:0 0 0 1px rgba(197,52,61,.4)}
+.feed-empty{grid-column:1/-1;position:relative}
+.feed-empty .ghosts{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.feed-empty .ghosts i{aspect-ratio:3/4;border:1.5px dashed var(--line);background:radial-gradient(circle,var(--blue-pale) 1px,transparent 1.4px) 0 0/6px 6px}
+.feed-empty p{position:absolute;inset:0;display:grid;place-items:center;text-align:center;margin:0;color:var(--ink-2);font-size:13px}
+.feed-empty p span{background:var(--card-2);padding:16px 22px;border-radius:16px;box-shadow:0 8px 20px -14px rgba(34,49,78,.7)}
+.feed-empty em{font:italic 500 24px/1.2 var(--serif);color:var(--blue-deep);display:block;margin-bottom:4px}
+
+/* ---------- перетаскивание ---------- */
+body.dragging,body.dragging .panel,body.dragging .cell,body.dragging .stamp-wrap{cursor:grabbing}
+body.dragging .hb,body.dragging .ov-info{opacity:0!important}
+.lifted{opacity:.25}
+.cell.drop-target{outline:3px dashed var(--red);outline-offset:-3px}
+.cell.drop-target img{filter:brightness(.8) saturate(.8)}
+.cell.drop-no img{filter:grayscale(.7) brightness(.85)}
+.feed-panel.drop-auto .feed-scroll{background-color:rgba(213,223,238,.45)}
+.drop-hint{position:absolute;left:50%;top:64px;transform:translate(-50%,-6px);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;
+  background:var(--blue-deep);color:#fff;font:600 12px var(--sans);padding:8px 14px;border-radius:999px;box-shadow:0 8px 18px -8px rgba(20,28,48,.6);white-space:nowrap}
+.feed-panel.drop-auto .drop-hint{opacity:1;transform:translate(-50%,0)}
+.ghost{position:fixed;left:0;top:0;width:92px;pointer-events:none;z-index:90;filter:drop-shadow(0 14px 20px rgba(20,28,48,.35)) drop-shadow(0 2px 3px rgba(20,28,48,.3));will-change:transform}
+.ghost .stamp{--r:3px}
+.fly{position:fixed;z-index:85;pointer-events:none;overflow:hidden;transform-origin:0 0;box-shadow:0 12px 26px -10px rgba(20,28,48,.55)}
+.fly img{width:100%;height:100%;object-fit:cover;display:block}
+.pulse::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--blue-deep);animation:pulseOut 1.5s ease-out forwards;pointer-events:none;z-index:3}
+@keyframes pulseOut{0%,45%{opacity:1}100%{opacity:0}}
+
+/* ---------- правая колонка: марка + выезжающая раскладка ---------- */
+.side-inner{position:absolute;inset:0;display:flex;flex-direction:column}
+.drawer{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3;background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;
+  transform:translateX(104%);visibility:hidden;transition:transform .3s var(--ease),visibility 0s linear .3s;box-shadow:-10px 0 24px -18px rgba(20,28,48,.5)}
+.drawer.open{transform:none;visibility:visible;transition:transform .3s var(--ease),visibility 0s}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 26px 40px;color:var(--ink-2)}
+.ghost-stamp{width:96px;aspect-ratio:3/4;border:1.5px dashed var(--blue);border-radius:4px;display:grid;place-items:center;transform:rotate(-4deg);margin-bottom:20px;
+  background:radial-gradient(circle,var(--blue-pale) 1px,transparent 1.4px) 0 0/6px 6px}
+.ghost-stamp svg{width:20px;height:20px;color:var(--red)}
+.empty h3{font:italic 500 24px/1.1 var(--serif);color:var(--ink);margin:0 0 10px}
+.empty p{font-size:12.5px;margin:0;line-height:1.7}
+.empty p b{font-weight:600;color:var(--ink)}
+.empty .btn-text{margin-top:14px;font-size:12px}
+.insp-top{display:flex;gap:16px;align-items:flex-start;margin:2px 0 14px}
+.insp-prev{width:120px;flex:none;position:relative;cursor:zoom-in}
+.insp-prev .stamp-wrap{cursor:zoom-in}
+.insp-prev .crop-hint{position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:50%;background:var(--card-2);display:grid;place-items:center;color:var(--ink-2);box-shadow:0 3px 8px -2px rgba(20,28,48,.4);opacity:0;transition:opacity .15s}
+.insp-prev:hover .crop-hint{opacity:1}
+.insp-meta{min-width:0;flex:1;display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.status{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font:500 11px/1 var(--mono);color:var(--ink-2);background:var(--blue-mist);border-radius:999px;padding:5px 9px}
+.status.next{background:var(--red);color:#fff}
+.status svg.i{width:12px;height:12px}
+.fname{font:500 11px var(--mono);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attr{padding:12px 0;border-top:1px dashed var(--line)}
+.attr-h{display:flex;align-items:baseline;gap:8px;font:500 11px var(--mono);color:var(--ink-2);margin-bottom:8px}
+.attr-h .val{margin-left:auto;color:var(--ink-3)}
+.color-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.color-row .sw{width:20px;height:20px}
+.color-row .cname{font:italic 600 21px/1 var(--serif)}
+.pal-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pal{width:24px;height:24px;border-radius:7px;border:none;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);padding:0;position:relative}
+.pal.on{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--blue-deep)}
+.pal.pick{display:grid;place-items:center;background:var(--card-2);color:var(--ink-2);overflow:hidden}
+.pal.pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.seg{display:flex;background:var(--card-2);border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px var(--line)}
+.seg button{flex:1;border:none;background:none;padding:8px 4px;border-radius:7px;font:500 12px/1 var(--sans);cursor:pointer;color:var(--ink-2);position:relative;white-space:nowrap;transition:background .15s,color .15s}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--blue-deep);color:#fff;box-shadow:0 1px 3px rgba(20,28,48,.3)}
+.seg button.auto::after{content:"";position:absolute;top:4px;right:5px;width:4px;height:4px;border-radius:50%;background:var(--red)}
+.seg button.on.auto::after{background:#fff}
+.auto-note{display:flex;align-items:center;gap:6px;font:500 10.5px var(--mono);color:var(--ink-3);margin:6px 0 0;padding-top:12px;border-top:1px dashed var(--line)}
+.auto-note i{width:5px;height:5px;border-radius:50%;background:var(--red);display:inline-block}
+
+/* настройки раскладки */
+.set-sec{padding:14px 0;border-top:1px dashed var(--line)}
+.set-sec:first-child{border-top:none;padding-top:2px}
+.set-sec h4{font:500 11px var(--mono);color:var(--ink-2);margin:0 0 6px;letter-spacing:.03em}
+.set-sec .note{font-size:11.5px;color:var(--ink-3);margin:6px 0 0;line-height:1.45}
+.attr-row{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 12px;padding:7px 0}
+.attr-row .nm{font:500 13px var(--sans)}
+.attr-row input[type=range]{grid-column:2}
+.attr-row.off .nm{color:var(--ink-3)}
+.switch{width:32px;height:18px;border-radius:999px;border:none;background:rgba(34,49,78,.2);position:relative;cursor:pointer;transition:background .2s;flex:none;padding:0}
+.switch::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s var(--ease)}
+.switch.on{background:var(--blue-deep)}
+.switch.on::after{transform:translateX(14px)}
+.range-labels{display:flex;justify-content:space-between;font:500 10.5px var(--mono);color:var(--ink-3);margin-top:-2px}
+.sl-title{font:500 13px var(--sans);display:flex;justify-content:space-between;margin-top:8px}
+.nbr{display:flex;gap:16px;align-items:center}
+.nbr-map{display:grid;grid-template-columns:repeat(5,11px);gap:2px;flex:none}
+.nbr-map i{width:11px;height:14px;border-radius:2px;display:block}
+.nbr-sliders{flex:1;min-width:0}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.minimap{display:grid;grid-template-columns:repeat(3,16px);gap:2px;flex:none}
+.minimap i{width:16px;height:21px;display:block;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.minimap i.published,.minimap i.pinned{opacity:.5}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--blue),rgba(34,49,78,.25))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--red);margin-top:-6.5px;border:2.5px solid var(--card-2);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+input[type=range]::-moz-range-track{height:2px;background:rgba(34,49,78,.3)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--red);border:2.5px solid var(--card-2)}
+
+/* ---------- модалки ---------- */
+.modal{position:fixed;inset:0;background:rgba(34,49,78,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:grid;place-items:center;z-index:70;padding:16px;animation:fade .15s}
+.modal[hidden]{display:none}
+.modal-card{background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;border-radius:var(--radius);padding:22px;max-width:100%;max-height:100%;overflow:auto;box-shadow:0 30px 60px -20px rgba(20,28,48,.6);position:relative;animation:pop .2s var(--ease)}
+.modal-card .panel-head{padding:0 0 12px;min-height:0}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+.crop-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+#cropCanvas{cursor:grab;border-radius:8px;touch-action:none;display:block;box-shadow:0 0 0 1px var(--line)}
+.crop-side{display:flex;flex-direction:column;gap:14px;width:170px}
+.crop-side .lbl{font:500 11px var(--mono);color:var(--ink-2)}
+#cropPreview{width:150px;height:200px;box-shadow:0 6px 16px -8px rgba(34,49,78,.6);display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font:500 12px var(--mono);color:var(--ink-2);min-width:300px}
+.keys b{color:var(--blue-deep);font-weight:600;white-space:nowrap}
+
+/* ---------- вход ---------- */
+.gate{position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:16px;overflow:auto;background:var(--noise),var(--paper);background-size:200px 200px,auto}
+.gate.as-modal{background:rgba(34,49,78,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.gate[hidden]{display:none}
+.gate-card{width:min(400px,100%);background-color:var(--card);background-image:var(--noise-soft);background-size:200px 200px;border-radius:var(--radius);padding:30px 28px 24px;position:relative;
+  box-shadow:0 30px 60px -24px rgba(20,28,48,.5),0 0 0 1px var(--line-2);animation:pop .22s var(--ease)}
+.gate-close{position:absolute;right:12px;top:12px}
+.gate-logo{font:italic 500 44px/1 var(--serif);color:var(--blue-deep);text-align:center;margin-bottom:22px}
+.gate.as-modal .gate-logo{display:none}
+.gate h3{font:italic 500 25px/1.15 var(--serif);color:var(--ink);margin:0 0 16px;display:flex;align-items:center;gap:10px}
+.gate .lead{font-size:13px;color:var(--ink-2);margin:-8px 0 16px;line-height:1.5}
+.gate-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.gate-acc{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border-radius:14px;border:none;background:var(--card-2);cursor:pointer;font:600 15px var(--sans);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .15s,background .15s}
+.gate-acc:hover{box-shadow:inset 0 0 0 1px var(--blue);background:#fff}
+.gate-acc .tail{margin-left:auto;color:var(--ink-3);display:flex}
+.gate-acc .ava{width:32px;height:32px;font-size:19px}
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.field > span{font:500 11px/1.4 var(--mono);color:var(--ink-2)}
+.field input[type=text]{font:500 16px var(--sans);padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card-2);color:var(--ink);outline:none;width:100%}
+.field input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-mist)}
+.pin-boxes{display:flex;gap:10px;justify-content:center}
+.pin-boxes input{width:54px;height:62px;border-radius:14px;border:1px solid var(--line);background:var(--card-2);text-align:center;font:600 26px var(--mono);color:var(--ink);outline:none;caret-color:var(--red);padding:0;transition:border-color .15s,box-shadow .15s}
+.pin-boxes input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-mist)}
+.pin-boxes.shake{animation:shake .38s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.gate-err{color:var(--red);font-size:12.5px;min-height:18px;margin:10px 0 4px;text-align:center}
+.gate-actions{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:6px}
+
+/* ---------- тост ---------- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:all .25s var(--ease);z-index:95;
+  background:var(--ink);color:#fff;padding:10px 12px 10px 14px;border-radius:999px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 14px 30px -10px rgba(20,28,48,.6)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.on.act{pointer-events:auto}
+.toast svg{width:12px;height:12px;color:#f2a7a7;flex:none}
+.toast-act{border:none;background:rgba(255,255,255,.14);color:#fff;font:600 12px var(--sans);padding:6px 11px;border-radius:999px;cursor:pointer}
+.toast-act:hover{background:rgba(255,255,255,.24)}
+
+@media (max-width:1180px){
+  .cols{grid-template-columns:236px minmax(0,1fr) 300px;gap:14px;padding:0 14px 14px}
+  .top{padding:10px 16px}
+}
+@media (max-width:860px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .cols{grid-template-columns:1fr}
+  .buffer .panel-body{max-height:46vh}
+  .side{min-height:560px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="deco-star f" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg>
+      <div class="logo-wrap"><span class="logo">кляссер</span></div>
+    </div>
+    <div class="top-right">
+      <span class="sync" id="sync"><svg class="f" viewBox="0 0 20 20"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg></span>
+      <div class="acc" id="acc">
+        <button class="acc-btn" id="accBtn"><span class="ava" id="accAva"></span><span class="nm" id="accName">—</span><svg class="i" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
+        <div class="menu acc-pop" id="accPop" hidden></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="cols">
+    <section class="panel buffer" id="bufferPanel">
+      <div class="panel-head"><h2>буфер</h2><span class="count" id="bufCount"></span></div>
+      <div class="panel-body" id="bufferBody">
+        <label class="drop" for="fileInput"><span class="plus"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span><span><b>добавить фото</b><small>или перетащи сюда</small></span></label>
+        <div class="stamps" id="stamps"></div>
+      </div>
+      <div class="panel-foot" id="bufferFoot" hidden><button class="btn-text" id="allToFeed">всё в ленту <svg class="i" viewBox="0 0 16 16"><path d="M5 11l6-6M6 5h5v5"/></svg></button></div>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    </section>
+
+    <section class="panel feed-panel" id="feedPanel">
+      <div class="panel-head">
+        <h2>лента</h2><span class="stats" id="stats"></span>
+        <div class="tools">
+          <button class="icon-btn" id="undoBtn" title="отменить · ⌘Z"><svg class="i" viewBox="0 0 16 16"><path d="M5.5 3.5L2.5 6.5l3 3"/><path d="M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7"/></svg></button>
+          <button class="icon-btn" id="redoBtn" title="вернуть · ⌘⇧Z"><svg class="i" viewBox="0 0 16 16"><path d="M10.5 3.5l3 3-3 3"/><path d="M13.5 6.5H6a3.5 3.5 0 0 0 0 7h3"/></svg></button>
+          <span class="sep"></span>
+          <button class="icon-btn" id="shuffleBtn" title="другой вариант раскладки"><svg class="f" viewBox="0 0 20 20"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg></button>
+          <button class="icon-btn" id="settingsBtn" title="настройки раскладки"><svg class="i" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></svg></button>
+        </div>
+      </div>
+      <div class="drop-hint">отпусти — фото встанет само</div>
+      <div class="panel-body feed-scroll" id="feedScroll">
+        <div class="feed-wrap"><div class="feed" id="feed"></div><div class="bounds" id="bounds"></div></div>
+      </div>
+    </section>
+
+    <aside class="panel side" id="sidePanel">
+      <div class="side-inner" id="inspector"></div>
+      <div class="drawer" id="settings"></div>
+    </aside>
+  </main>
+</div>
+
+<div class="hills" aria-hidden="true">
+  <svg viewBox="0 0 1440 110" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <pattern id="dotsA" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.2" fill="#2646a5"/></pattern>
+      <pattern id="dotsB" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="2.5" cy="2.5" r="1.6" fill="#2646a5"/></pattern>
+    </defs>
+    <path d="M0,60 C140,30 250,36 380,52 C520,70 610,14 770,26 C910,38 1010,64 1180,44 C1290,32 1370,38 1440,46 L1440,110 L0,110Z" fill="url(#dotsA)" opacity=".5"/>
+    <path d="M0,86 C190,68 330,94 520,82 C700,70 830,94 1010,80 C1150,70 1290,86 1440,78 L1440,110 L0,110Z" fill="url(#dotsB)" opacity=".8"/>
+  </svg>
+</div>
+
+<div class="menu ctx" id="ctx" hidden></div>
+
+<div class="modal" id="cropModal" hidden>
+  <div class="modal-card">
+    <div class="panel-head"><h2>обрезка</h2><span class="count">тяни рамку · колесо — масштаб</span><button class="icon-btn" data-close="crop" style="margin-left:auto" title="закрыть"><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <div class="crop-body">
+      <canvas id="cropCanvas"></canvas>
+      <div class="crop-side">
+        <span class="lbl">так будет в ленте</span>
+        <canvas id="cropPreview" width="300" height="400"></canvas>
+        <div><span class="lbl">масштаб</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1"></div>
+        <button class="btn-text" id="cropCenter">по центру</button>
+        <div class="row"><button class="btn quiet sm" data-close="crop">отмена</button><button class="btn sm" id="cropSave">сохранить</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="helpModal" hidden>
+  <div class="modal-card">
+    <div class="panel-head"><h2>клавиши</h2><button class="icon-btn" data-close="help" style="margin-left:auto" title="закрыть"><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <div class="keys">
+      <b>перетащить</b><span>переставить фото · в ленту · в буфер</span>
+      <b>правый клик</b><span>все действия с фото</span>
+      <b>2× клик</b><span>обрезка</span>
+      <b>1 2 3 4</b><span>нет людей · люди · я · селфи</span>
+      <b>0</b><span>человек: не размечено</span>
+      <b>L</b><span>зафиксировать место</span>
+      <b>P</b><span>отметить опубликованным</span>
+      <b>↵</b><span>из буфера в ленту</span>
+      <b>⌫</b><span>в буфер · из буфера — удалить</span>
+      <b>⌘Z  ⌘⇧Z</b><span>отменить · вернуть</span>
+      <b>esc</b><span>снять выделение, закрыть</span>
+      <b>?</b><span>эта подсказка</span>
+    </div>
+  </div>
+</div>
+
+<div class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <button class="icon-btn gate-close" id="gateClose" title="закрыть" hidden><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    <div class="gate-logo">кляссер</div>
+    <div id="gateBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   Кляссер — раскладка ленты instagram
+   фото и разметка — на сервере; анализ и раскладка — в браузере
+   ============================================================ */
+
+// ---------- utils ----------
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+const svg = (body, vb = '0 0 16 16') => `<svg class="i" viewBox="${vb}" aria-hidden="true">${body}</svg>`;
+const I = {
+  lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
+  unlock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.7"/>'),
+  check: svg('<path d="M3 8.5l3.2 3L13 4.5"/>'),
+  pin: svg('<path d="M9.5 2l4.5 4.5-2 .6-2.4 2.4.3 3-1.2 1.2L2.3 7.3 3.5 6l3 .3L8.9 4z"/><path d="M5.2 10.8L2 14"/>'),
+  crop: svg('<path d="M4 1.5V12h10.5M1.5 4H12v10.5"/>'),
+  inbox: svg('<path d="M2 9.5l1.6-6h8.8l1.6 6v4H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/>'),
+  trash: svg('<path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/>'),
+  up: svg('<path d="M5 11l6-6M6 5h5v5"/>'),
+  undo: svg('<path d="M5.5 3.5L2.5 6.5l3 3"/><path d="M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7"/>'),
+  more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>'),
+  plus: svg('<path d="M8 3v10M3 8h10"/>'),
+  out: svg('<path d="M9.5 3H3.5v10h6M7 8h7M11.5 5.5L14 8l-2.5 2.5"/>'),
+  edit: svg('<path d="M11 2.5l2.5 2.5L6 12.5 3 13l.5-3z"/>'),
+  key: svg('<circle cx="5" cy="10.5" r="2.5"/><path d="M6.8 8.7L13 2.5M11 4.5l1.5 1.5M9.5 6l1 1"/>'),
+  back: svg('<path d="M10 3L5 8l5 5"/>'),
+  post: svg('<circle cx="6.5" cy="8" r="4.5"/><path d="M12 5.5q1-1 2 0M12 8q1-1 2 0M12 10.5q1-1 2 0"/>'),
+  star: '<svg class="f" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg>',
+};
+
+// ---------- цвет ----------
+const LIN = new Float32Array(256);
+for (let i = 0; i < 256; i++){ const c = i / 255; LIN[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+const fLab = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+function rgb2lab(r, g, b){
+  const R = LIN[r], G = LIN[g], B = LIN[b];
+  const x = (R * .4124 + G * .3576 + B * .1805) / .95047, y = R * .2126 + G * .7152 + B * .0722, z = (R * .0193 + G * .1192 + B * .9505) / 1.08883;
+  const fx = fLab(x), fy = fLab(y), fz = fLab(z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+function lab2rgb([L, a, b]){
+  const fy = (L + 16) / 116, fx = a / 500 + fy, fz = fy - b / 200;
+  const inv = t => t ** 3 > 0.008856 ? t ** 3 : (t - 16 / 116) / 7.787;
+  const x = inv(fx) * .95047, y = inv(fy), z = inv(fz) * 1.08883;
+  const g = c => { c = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; return clamp(Math.round(c * 255), 0, 255); };
+  return [g(x * 3.2406 - y * 1.5372 - z * .4986), g(-x * .9689 + y * 1.8758 + z * .0415), g(x * .0557 - y * .204 + z * 1.057)];
+}
+const hex2lab = hex => { const n = parseInt(hex.slice(1), 16); return rgb2lab(n >> 16 & 255, n >> 8 & 255, n & 255); };
+const lab2hex = lab => lab ? '#' + lab2rgb(lab).map(v => v.toString(16).padStart(2, '0')).join('') : 'transparent';
+const dE = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+const NAMED = [['красный','#c8323a'],['коралловый','#e2725b'],['оранжевый','#e08a2e'],['жёлтый','#e6c84a'],['оливковый','#8c8a4b'],['зелёный','#4f8f4a'],['бирюзовый','#3a9c98'],['голубой','#86b4dc'],['синий','#2b4ea3'],['фиолетовый','#7656a3'],['розовый','#e3a0b4'],['коричневый','#7a5236'],['бежевый','#d8c3a0'],['белый','#f3f0e9'],['серый','#8f8f8c'],['чёрный','#232323']]
+  .map(([name, hex]) => ({ name, lab: hex2lab(hex) }));
+function colorName(lab){ if (!lab) return '—'; let best = NAMED[0], bd = 1e9; for (const c of NAMED){ const d = dE(lab, c.lab); if (d < bd){ bd = d; best = c; } } return best.name; }
+
+// ---------- признаки ----------
+const ATTRS = {
+  light: { title:'светлота', opts:[['light','светлое'],['mid','среднее'],['dark','тёмное']] },
+  warm:  { title:'теплота',  opts:[['warm','тёплое'],['neutral','нейтр.'],['cool','холодное']] },
+  busy:  { title:'кучность', opts:[['calm','спокойное'],['mid','среднее'],['busy','кучное']] },
+  person:{ title:'человек',  opts:[['none','нет'],['people','люди'],['me','я'],['selfie','селфи']] },
+};
+const ABBR = {
+  light:{ light:'светлое', mid:'ср. свет', dark:'тёмное' },
+  warm:{ warm:'тёплое', neutral:'нейтр.', cool:'холодное' },
+  busy:{ calm:'спокойное', mid:'ср. кучн.', busy:'кучное' },
+  person:{ none:'без людей', people:'люди', me:'я', selfie:'селфи' },
+};
+const SHORT = { color:'цвет', light:'свет', warm:'тепло', busy:'кучн', person:'чел' };
+const ATTR_KEYS = ['color', 'light', 'warm', 'busy', 'person'];
+const ATTR_TITLE = { color:'цвет', light:'светлота', warm:'теплота', busy:'кучность', person:'человек' };
+const PERSON_SIM = { 'me|me':1, 'selfie|selfie':1, 'people|people':.7, 'me|selfie':.6, 'selfie|me':.6, 'people|me':.3, 'me|people':.3, 'people|selfie':.3, 'selfie|people':.3 };
+// насколько плохо, когда рядом два одинаковых значения (два кучных — плохо, два спокойных — почти норм)
+const SAME_PENALTY = { light:{ light:1, mid:.4, dark:1 }, warm:{ warm:1, neutral:.3, cool:1 }, busy:{ calm:.3, mid:.4, busy:1 } };
+const simOrd = (k, x, y) => (!x || !y || x !== y) ? 0 : (SAME_PENALTY[k][x] ?? 1);
+const isOn = k => !S.settings.enabled || S.settings.enabled[k] !== false;
+function weightsOf(st){ const w = {}; for (const k of ATTR_KEYS) w[k] = (st.enabled && st.enabled[k] === false) ? 0 : st.weights[k]; return w; }
+function eff(p){
+  const m = (p && p.manual) || {}, a = (p && p.auto) || {};
+  return { color: m.color || a.color || null, light: m.light || a.light || null, warm: m.warm || a.warm || null, busy: m.busy || a.busy || null, person: m.person || null };
+}
+function simParts(A, B, st){
+  return {
+    color: (A.color && B.color) ? Math.max(0, 1 - dE(A.color, B.color) / st.tol) : 0,
+    light: simOrd('light', A.light, B.light), warm: simOrd('warm', A.warm, B.warm), busy: simOrd('busy', A.busy, B.busy),
+    person: (A.person && B.person) ? (PERSON_SIM[A.person + '|' + B.person] || 0) : 0,
+  };
+}
+function simTotal(A, B, st, w = weightsOf(st)){
+  const p = simParts(A, B, st);
+  return w.color * p.color + w.light * p.light + w.warm * p.warm + w.busy * p.busy + w.person * p.person;
+}
+
+// ---------- анализ фото ----------
+function cropRect(w, h, c){
+  let ww, wh;
+  if (w / h > 3 / 4){ wh = h; ww = h * 3 / 4; } else { ww = w; wh = w * 4 / 3; }
+  ww /= c.zoom; wh /= c.zoom;
+  return { x: clamp(c.cx * w - ww / 2, 0, w - ww), y: clamp(c.cy * h - wh / 2, 0, h - wh), w: ww, h: wh };
+}
+function drawCrop(img, crop, W, H){
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const r = cropRect(img.naturalWidth || img.width, img.naturalHeight || img.height, crop);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, W, H);
+  return cv;
+}
+const canvasToBlob = (cv, q = .86) => new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('blob')), 'image/jpeg', q));
+function kmeans(labs, N, k){
+  const rng = mulberry32(7), idx = [];
+  for (let i = 0; i < N; i += 2) idx.push(i);
+  const M = idx.length, C = [], dist = new Float32Array(M).fill(1e9);
+  const f0 = idx[(rng() * M) | 0] * 3; C.push([labs[f0], labs[f0 + 1], labs[f0 + 2]]);
+  while (C.length < k){
+    const c = C[C.length - 1]; let sum = 0;
+    for (let j = 0; j < M; j++){ const i = idx[j] * 3; const d = (labs[i] - c[0]) ** 2 + (labs[i + 1] - c[1]) ** 2 + (labs[i + 2] - c[2]) ** 2; if (d < dist[j]) dist[j] = d; sum += dist[j]; }
+    let r = rng() * sum, pick = 0;
+    for (let j = 0; j < M; j++){ r -= dist[j]; if (r <= 0){ pick = j; break; } }
+    const i = idx[pick] * 3; C.push([labs[i], labs[i + 1], labs[i + 2]]);
+  }
+  const asg = new Int32Array(M);
+  for (let it = 0; it < 10; it++){
+    const Sm = C.map(() => [0, 0, 0, 0]);
+    for (let j = 0; j < M; j++){
+      const i = idx[j] * 3; let b = 0, bd = 1e18;
+      for (let q = 0; q < k; q++){ const c = C[q]; const d = (labs[i] - c[0]) ** 2 + (labs[i + 1] - c[1]) ** 2 + (labs[i + 2] - c[2]) ** 2; if (d < bd){ bd = d; b = q; } }
+      asg[j] = b; const s = Sm[b]; s[0] += labs[i]; s[1] += labs[i + 1]; s[2] += labs[i + 2]; s[3]++;
+    }
+    for (let q = 0; q < k; q++){ const s = Sm[q]; if (s[3]) C[q] = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; }
+  }
+  const cnt = new Array(k).fill(0); for (let j = 0; j < M; j++) cnt[asg[j]]++;
+  return C.map((c, q) => ({ lab: c, w: cnt[q] / M })).filter(c => c.w > 0).sort((a, b) => b.w - a.w);
+}
+function analyze(img, crop){
+  const CW = 72, CH = 96, N = CW * CH;
+  const d = drawCrop(img, crop, CW, CH).getContext('2d').getImageData(0, 0, CW, CH).data;
+  const labs = new Float32Array(N * 3); let sL = 0, sA = 0, sB = 0;
+  for (let i = 0; i < N; i++){ const l = rgb2lab(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]); labs[i * 3] = l[0]; labs[i * 3 + 1] = l[1]; labs[i * 3 + 2] = l[2]; sL += l[0]; sA += l[1]; sB += l[2]; }
+  const meanL = sL / N, meanA = sA / N, meanB = sB / N;
+  const palette = kmeans(labs, N, 5);
+  let best = palette[0], bs = -1;
+  for (const c of palette){ const ch = Math.hypot(c.lab[1], c.lab[2]); const s = c.w * (.35 + .65 * Math.min(1, ch / 28)); if (s > bs){ bs = s; best = c; } }
+  const light = meanL > 66 ? 'light' : meanL < 42 ? 'dark' : 'mid';
+  const warmScore = meanB + .35 * meanA;
+  const warm = warmScore > 10 ? 'warm' : warmScore < 2 ? 'cool' : 'neutral';
+  const W = 180, H = 240;
+  const gd = drawCrop(img, crop, W, H).getContext('2d').getImageData(0, 0, W, H).data;
+  const Y = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) Y[i] = .299 * gd[i * 4] + .587 * gd[i * 4 + 1] + .114 * gd[i * 4 + 2];
+  let edges = 0, tot = 0;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++){
+    const i = y * W + x;
+    const gx = -Y[i - W - 1] - 2 * Y[i - 1] - Y[i + W - 1] + Y[i - W + 1] + 2 * Y[i + 1] + Y[i + W + 1];
+    const gy = -Y[i - W - 1] - 2 * Y[i - W] - Y[i - W + 1] + Y[i + W - 1] + 2 * Y[i + W] + Y[i + W + 1];
+    if (gx * gx + gy * gy > 4900) edges++; tot++;
+  }
+  const busyScore = edges / tot;
+  const busy = busyScore > .17 ? 'busy' : busyScore < .07 ? 'calm' : 'mid';
+  const r1 = v => Math.round(v * 10) / 10;
+  return { color: best.lab.map(r1), palette: palette.map(c => ({ lab: c.lab.map(r1), w: Math.round(c.w * 1000) / 1000 })),
+    light, meanL: r1(meanL), warm, warmScore: r1(warmScore), busy, busyScore: Math.round(busyScore * 1000) / 1000 };
+}
+
+// ---------- сервер ----------
+const API = {
+  async req(method, url, body){
+    const opt = { method, headers: {}, credentials: 'same-origin' };
+    if (body instanceof Blob){ opt.body = body; opt.headers['Content-Type'] = body.type || 'application/octet-stream'; }
+    else if (body !== undefined){ opt.body = JSON.stringify(body); opt.headers['Content-Type'] = 'application/json'; }
+    const r = await fetch(url, opt);
+    const data = r.status === 204 ? null : await r.json().catch(() => null);
+    if (!r.ok){ const e = new Error((data && data.error) || r.statusText); e.status = r.status; e.data = data; throw e; }
+    return data;
+  },
+  get: u => API.req('GET', u), post: (u, b) => API.req('POST', u, b), put: (u, b) => API.req('PUT', u, b),
+  patch: (u, b) => API.req('PATCH', u, b), del: u => API.req('DELETE', u),
+};
+const accUrl = (p = '') => `/api/acc/${encodeURIComponent(S.acc)}${p}`;
+function setSync(s){ const el = $('#sync'); el.className = 'sync ' + (s || ''); el.title = s === 'error' ? 'нет связи с сервером — повторю попытку' : ''; }
+
+// ---------- состояние ----------
+const DEFAULTS = { weights:{ color:1, light:1, warm:1, busy:1, person:1 }, enabled:{ color:true, light:true, warm:true, busy:true, person:true }, tol:25, wDiag:.5, wFar:.2, auto:true };
+const S = {
+  accounts: [], inviteRequired: false, acc: null, rev: 0,
+  photos: new Map(),     // id -> {id,name,w,h,crop,auto,thumbV,addedAt,manual}
+  localUrls: new Map(),  // id -> objectURL свежезагруженного превью
+  trash: new Map(),      // id -> отложенное удаление (можно вернуть из тоста)
+  // лента сверху вниз: pinned (закреп в профиле) → plan (будущие; низ плана = следующий) → published (новые → старые)
+  layout: { buffer: [], plan: [], published: [], pinned: [] },
+  settings: structuredClone(DEFAULTS), seed: 1, selected: null, undo: [], redo: [], dirty: false,
+};
+function displayList(){
+  const L = S.layout;
+  return [
+    ...L.pinned.map((e, i) => ({ id: e.id, zone: 'pinned', idx: i, fixed: true })),
+    ...L.plan.map((e, i) => ({ id: e.id, zone: 'plan', idx: i, fixed: !!e.locked, locked: !!e.locked })),
+    ...L.published.map((id, i) => ({ id, zone: 'published', idx: i, fixed: true })),
+  ];
+}
+function zoneOf(id){
+  const L = S.layout; let i;
+  if ((i = L.buffer.indexOf(id)) >= 0) return { zone: 'buffer', idx: i };
+  if ((i = L.plan.findIndex(e => e.id === id)) >= 0) return { zone: 'plan', idx: i, entry: L.plan[i] };
+  if ((i = L.published.indexOf(id)) >= 0) return { zone: 'published', idx: i };
+  if ((i = L.pinned.findIndex(e => e.id === id)) >= 0) return { zone: 'pinned', idx: i, entry: L.pinned[i] };
+  return null;
+}
+function removeId(id){
+  const L = S.layout;
+  L.buffer = L.buffer.filter(x => x !== id);
+  if (L.plan.some(e => e.id === id)) planRemove(id);
+  L.published = L.published.filter(x => x !== id); L.pinned = L.pinned.filter(e => e.id !== id);
+}
+// План — это клетки ленты. Зафиксированное фото держит свою клетку: при вставке и удалении
+// сдвигаются только свободные фото, перескакивая через зафиксированные.
+function planInsert(entry, at = 0){
+  const old = S.layout.plan, n = old.length, res = new Array(n + 1);
+  old.forEach((e, i) => { if (e.locked) res[i] = e; });
+  const free = old.filter(e => !e.locked);
+  const k = old.slice(0, Math.min(at, n)).filter(e => !e.locked).length;
+  const seq = [...free.slice(0, k), entry, ...free.slice(k)];
+  let s = 0; for (let i = 0; i <= n; i++) if (!res[i]) res[i] = seq[s++];
+  S.layout.plan = res;
+}
+function planRemove(id){
+  const old = S.layout.plan, idx = old.findIndex(e => e.id === id); if (idx < 0) return;
+  const m = old.length - 1, res = new Array(m), overflow = [];
+  old.forEach((e, i) => { if (i === idx || !e.locked) return; if (i < m) res[i] = e; else overflow.push(e); });
+  for (let i = m - 1; i >= 0 && overflow.length; i--) if (!res[i]) res[i] = overflow.pop(); // зафиксированное в самой последней клетке — на клетку выше
+  const free = old.filter((e, i) => i !== idx && !e.locked);
+  let s = 0; for (let i = 0; i < m; i++) if (!res[i]) res[i] = free[s++];
+  S.layout.plan = res;
+}
+function sanitizeLayout(){
+  const L = S.layout = Object.assign({ buffer: [], plan: [], published: [], pinned: [] }, S.layout || {});
+  const seen = new Set(); const fresh = id => S.photos.has(id) && !seen.has(id) && (seen.add(id), true);
+  L.pinned = L.pinned.filter(e => fresh(e.id)); L.plan = L.plan.filter(e => fresh(e.id));
+  L.published = L.published.filter(fresh); L.buffer = L.buffer.filter(fresh);
+  for (const id of S.photos.keys()) if (!seen.has(id)) L.buffer.unshift(id);
+}
+
+// ---------- история ----------
+function snapshot(){ return JSON.stringify({ layout: S.layout, seed: S.seed, settings: S.settings, manual: [...S.photos.values()].map(p => [p.id, p.manual || {}]) }); }
+function pushUndo(){ S.undo.push(snapshot()); if (S.undo.length > 100) S.undo.shift(); S.redo.length = 0; }
+function restore(json){
+  const prev = captureRects(), s = JSON.parse(json);
+  S.layout = s.layout; S.seed = s.seed; S.settings = s.settings;
+  for (const [id, m] of s.manual){ const p = S.photos.get(id); if (p) p.manual = m; }
+  sanitizeLayout(); S.dirty = false;
+  persist(); renderSettings(); renderAll(); animateFrom(prev);
+}
+function undo(){ if (!S.undo.length) return; S.redo.push(snapshot()); restore(S.undo.pop()); }
+function redo(){ if (!S.redo.length) return; S.undo.push(snapshot()); restore(S.redo.pop()); }
+
+// любое изменение: запомнить для отката → изменить → поправить план → сохранить → нарисовать с анимацией
+function mutate(fn, relayout = true, opts = {}){
+  const prev = captureRects();
+  pushUndo(); fn();
+  if (relayout){ if (S.settings.auto || opts.force) layoutPlan(!!opts.fresh); else S.dirty = true; }
+  persist(); renderAll(); animateFrom(prev, opts);
+}
+
+// ---------- сохранение ----------
+let saveTimer = null, saving = null, saveAgain = false;
+function stateDoc(){
+  const manual = {};
+  for (const p of S.photos.values()) if (p.manual && Object.keys(p.manual).length) manual[p.id] = p.manual;
+  return { layout: S.layout, seed: S.seed, settings: S.settings, manual };
+}
+function persist(){ if (!S.acc) return; setSync('saving'); clearTimeout(saveTimer); const acc = S.acc; saveTimer = setTimeout(() => { if (S.acc === acc) saveStateNow(); }, 400); }
+async function saveStateNow(){
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!S.acc) return;
+  if (saving){ saveAgain = true; return saving; }
+  const acc = S.acc;
+  saving = (async () => {
+    try {
+      const r = await API.put(`/api/acc/${encodeURIComponent(acc)}/state`, { state: stateDoc(), rev: S.rev });
+      if (S.acc === acc){ S.rev = r.rev; setSync('ok'); }
+    } catch (e){
+      if (e.status === 409 && S.acc === acc){ saveAgain = false; toast('аккаунт изменили на другом компьютере — загружаю свежую версию'); await loadAccount(acc); }
+      else if (e.status === 401){ saveAgain = false; showGate('pin', acc); }
+      else { console.warn(e); setSync('error'); setTimeout(persist, 5000); }
+    }
+  })();
+  await saving; saving = null;
+  if (saveAgain){ saveAgain = false; return saveStateNow(); }
+}
+const photoMeta = p => { const { manual, ...meta } = p; return meta; };
+const savePhoto = p => API.put(accUrl(`/photos/${p.id}/meta`), photoMeta(p));
+const thumbUrl = p => !p ? '' : S.localUrls.get(p.id) || `/api/acc/${encodeURIComponent(S.acc)}/photos/${p.id}/thumb?v=${p.thumbV || 1}`;
+
+// ---------- раскладка ----------
+// Соседство — по расстоянию в очереди публикации: 1 и 3 — рядом, 2 и 4 — диагональ, 5 и 6 — через одну.
+// Так раскладка не ломается, когда после каждого поста лента сдвигается на клетку.
+// fresh = true: собрать заново из варианта №seed (перемешать / собрать заново).
+// fresh = false: спокойно поправить текущую — двигаем только то, что заметно улучшает соседство.
+function layoutPlan(fresh = false){
+  S.dirty = false;
+  const L = S.layout, st = S.settings, W = weightsOf(st), pc = L.pinned.length;
+  const full = displayList();
+  const free = []; full.forEach((d, i) => { if (!d.fixed) free.push(i); });
+  if (free.length < 2) return;
+  const n = Math.min(full.length, free[free.length - 1] + 7);
+  const D = full.slice(0, n), F = D.map(d => eff(S.photos.get(d.id)));
+  const sim = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){ const s = simTotal(F[i], F[j], st, W); sim[i * n + j] = s; sim[j * n + i] = s; }
+  const dw = [0, 1, st.wDiag, 1, st.wDiag, st.wFar * .6, st.wFar];
+  const asg = new Int32Array(n); for (let i = 0; i < n; i++) asg[i] = i;
+  const local = s => { const ps = asg[s] * n; let c = 0; for (let k = 1; k <= 6; k++){ const w = dw[k]; if (!w) continue; if (s - k >= 0) c += w * sim[ps + asg[s - k]]; if (s + k < n) c += w * sim[ps + asg[s + k]]; } return c; };
+  const FN = free.length;
+  if (fresh){
+    const rng = mulberry32(((S.seed * 2654435761) >>> 0) || 1);
+    const pool = free.slice().sort((a, b) => D[a].id < D[b].id ? -1 : D[a].id > D[b].id ? 1 : 0);
+    for (let i = pool.length - 1; i > 0; i--){ const j = Math.floor(rng() * (i + 1)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+    free.forEach((slot, k) => { asg[slot] = pool[k]; });
+    const iters = Math.min(250000, 3000 * FN);
+    let T = 1.2; const alpha = Math.pow(.01 / T, 1 / iters);
+    for (let it = 0; it < iters; it++, T *= alpha){
+      const a = free[(rng() * FN) | 0], b = free[(rng() * FN) | 0]; if (a === b) continue;
+      const before = local(a) + local(b);
+      let t = asg[a]; asg[a] = asg[b]; asg[b] = t;
+      const delta = local(a) + local(b) - before;
+      if (delta > 0 && rng() >= Math.exp(-delta / T)){ t = asg[a]; asg[a] = asg[b]; asg[b] = t; }
+    }
+  }
+  const swap = (a, b) => { const t = asg[a]; asg[a] = asg[b]; asg[b] = t; };
+  if (fresh){
+    // дочистить: любые обмены, которые хоть немного улучшают
+    for (let r = 0; r < 6; r++){
+      let improved = false;
+      for (let x = 0; x < FN; x++) for (let y = x + 1; y < FN; y++){
+        const a = free[x], b = free[y], before = local(a) + local(b);
+        swap(a, b);
+        if (local(a) + local(b) < before - 1e-9) improved = true; else swap(a, b);
+      }
+      if (!improved) break;
+    }
+  } else {
+    // спокойный режим: за шаг — один самый полезный обмен (до 12 штук),
+    // и только если он заметно улучшает соседство — так двигается минимум фото
+    for (let step = 0; step < 12; step++){
+      let best = .08, ba = -1, bb = -1;
+      for (let x = 0; x < FN; x++) for (let y = x + 1; y < FN; y++){
+        const a = free[x], b = free[y], before = local(a) + local(b);
+        swap(a, b);
+        const gain = before - (local(a) + local(b));
+        swap(a, b);
+        if (gain > best){ best = gain; ba = a; bb = b; }
+      }
+      if (ba < 0) break;
+      swap(ba, bb);
+    }
+  }
+  for (const s of free) L.plan[s - pc].id = D[asg[s]].id;
+}
+function computeClashes(D){
+  const cells = D.map(() => new Set()), F = D.map(d => eff(S.photos.get(d.id))), w = weightsOf(S.settings);
+  let pairs = 0;
+  const check = (i, j) => {
+    const parts = simParts(F[i], F[j], S.settings); let any = false;
+    for (const k in parts){ if (!w[k]) continue; if (parts[k] >= (k === 'color' ? .5 : .99)){ cells[i].add(k); cells[j].add(k); any = true; } }
+    if (any) pairs++;
+  };
+  for (let i = 0; i < D.length; i++){ if (i % 3 < 2 && i + 1 < D.length) check(i, i + 1); if (i + 3 < D.length) check(i, i + 3); }
+  return { cells: cells.map(s => [...s]), pairs };
+}
+
+// ---------- анимации ----------
+const scrollers = () => [$('#feedScroll'), $('#bufferBody')];
+function captureRects(){
+  const rects = new Map();
+  for (const el of $$('.cell[data-id], .stamp-wrap[data-id]')){
+    if (el.closest('.insp-prev')) continue;
+    const img = el.querySelector('img'); if (!img) continue;
+    rects.set(el.dataset.id, { rect: img.getBoundingClientRect(), kind: el.classList.contains('cell') ? 'cell' : 'stamp' });
+  }
+  return { rects, scroll: scrollers().map(s => s.scrollTop) };
+}
+function ensureVisible(el){
+  const sc = el.closest('.panel-body'); if (!sc) return;
+  const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
+  if (r.top < b.top + 8) sc.scrollTop += r.top - b.top - 16;
+  else if (r.bottom > b.bottom - 8) sc.scrollTop += r.bottom - b.bottom + 16;
+}
+function animateFrom(prev, opts = {}){
+  if (!prev) return;
+  const focus = opts.focusId || (opts.ghost && opts.ghost.id);
+  if (focus){ const el = $(`.cell[data-id="${focus}"], .stamp-wrap[data-id="${focus}"]`); if (el){ ensureVisible(el); if (!REDUCED){ el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 1600); } } }
+  if (REDUCED) return;
+  const sd = scrollers().map((s, i) => s.scrollTop - prev.scroll[i]);
+  for (const el of $$('.cell[data-id], .stamp-wrap[data-id]')){
+    if (el.closest('.insp-prev')) continue;
+    const id = el.dataset.id, kind = el.classList.contains('cell') ? 'cell' : 'stamp';
+    const img = el.querySelector('img'); if (!img) continue;
+    const to = img.getBoundingClientRect(), p = prev.rects.get(id);
+    const from = (opts.ghost && opts.ghost.id === id) ? opts.ghost.rect : p && p.rect;
+    if (!from){ el.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.75,.25,1)' }); continue; }
+    if ((opts.ghost && opts.ghost.id === id) || p.kind !== kind){ fly(img.currentSrc || img.src, from, to, el); continue; }
+    const delta = sd[kind === 'cell' ? 0 : 1] || 0;
+    const dx = from.left - to.left, dy = from.top - to.top - delta;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+    el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }],
+      { duration: 340, delay: opts.ghost ? 90 : 0, easing: 'cubic-bezier(.25,.8,.25,1)', fill: 'backwards' });
+  }
+}
+function fly(src, from, to, el){
+  const f = document.createElement('div'); f.className = 'fly';
+  f.style.cssText = `left:${to.left}px;top:${to.top}px;width:${to.width}px;height:${to.height}px`;
+  f.innerHTML = `<img src="${src}" alt="">`;
+  document.body.appendChild(f); el.style.visibility = 'hidden';
+  const a = f.animate([{ transform: `translate(${from.left - to.left}px,${from.top - to.top}px) scale(${from.width / to.width},${from.height / to.height})` }, { transform: 'none' }],
+    { duration: 360, easing: 'cubic-bezier(.2,.75,.25,1)' });
+  let over = false;
+  const done = () => { if (over) return; over = true; el.style.visibility = ''; f.remove(); };
+  a.onfinish = done; a.oncancel = done; setTimeout(done, 600); // страховка, если анимацию придержал браузер
+}
+
+// ---------- загрузка ----------
+function loadImage(src){ return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('decode')); img.src = src; }); }
+async function blobToImage(blob){ const url = URL.createObjectURL(blob); try { return await loadImage(url); } finally { URL.revokeObjectURL(url); } }
+async function addFiles(fileList){
+  const files = [...fileList].filter(f => (f.type || '').startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif|gif)$/i.test(f.name));
+  if (!files.length) return;
+  if (!S.acc) return toast('сначала открой аккаунт');
+  let n = 0;
+  for (const f of files){
+    try {
+      const img = await blobToImage(f);
+      const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
+      const src = document.createElement('canvas'); src.width = w; src.height = h;
+      const sctx = src.getContext('2d'); sctx.imageSmoothingQuality = 'high'; sctx.drawImage(img, 0, 0, w, h);
+      const id = uid(), crop = { cx: .5, cy: .5, zoom: 1 };
+      const [srcBlob, thumbBlob] = await Promise.all([canvasToBlob(src, .9), canvasToBlob(drawCrop(src, crop, 450, 600), .85)]);
+      const acc = S.acc; if (!acc) return;
+      const p = { id, name: f.name, w, h, crop, auto: analyze(src, crop), thumbV: 1, addedAt: Date.now() };
+      setSync('saving');
+      const base = `/api/acc/${encodeURIComponent(acc)}/photos/${id}`;
+      await API.put(base + '/src', srcBlob); await API.put(base + '/thumb', thumbBlob); await API.put(base + '/meta', p);
+      if (S.acc !== acc) return;
+      p.manual = {};
+      S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); S.layout.buffer.unshift(id);
+      n++; renderBuffer();
+      const el = $(`.stamp-wrap[data-id="${id}"]`);
+      if (el && !REDUCED) el.animate([{ opacity: 0, transform: 'translateY(-10px) scale(.9)' }, { opacity: 1, transform: 'rotate(var(--rot))' }], { duration: 300, easing: 'cubic-bezier(.2,.75,.25,1)' });
+    } catch (e){
+      console.warn(e);
+      if (e.status || e.name === 'TypeError') toast(`не загрузилось на сервер: ${f.name}`);
+      else toast(`не открылось: ${f.name}` + (/\.hei[cf]$/i.test(f.name) ? ' — HEIC пока не читается, сохрани как JPEG' : ''));
+    }
+  }
+  persist(); renderAll();
+  if (n) toast(n === 1 ? 'фото в буфере' : `в буфере +${n}`);
+}
+
+// удаление с возможностью вернуть: с сервера стираем через 6 секунд
+function deletePhoto(id){
+  const p = S.photos.get(id), z = zoneOf(id); if (!p || !z) return;
+  const where = { zone: z.zone, idx: z.idx, locked: z.entry && z.entry.locked, back: z.entry && z.entry.back };
+  const prev = captureRects();
+  pushUndo(); removeId(id); S.photos.delete(id);
+  if (S.selected === id) S.selected = null;
+  if (S.settings.auto && where.zone !== 'buffer') layoutPlan();
+  persist(); renderAll(); animateFrom(prev);
+  const acc = S.acc;
+  S.trash.set(id, { p, where, acc, t: setTimeout(() => finalizeDelete(id), 6500) });
+  toast('фото удалено', { action: 'вернуть', onAction: () => restoreDeleted(id) });
+}
+function finalizeDelete(id){
+  const d = S.trash.get(id); if (!d) return;
+  clearTimeout(d.t); S.trash.delete(id);
+  const u = S.localUrls.get(id); if (u && d.acc === S.acc){ URL.revokeObjectURL(u); S.localUrls.delete(id); }
+  fetch(`/api/acc/${encodeURIComponent(d.acc)}/photos/${id}`, { method: 'DELETE', credentials: 'same-origin', keepalive: true }).catch(e => console.warn(e));
+}
+function restoreDeleted(id){
+  const d = S.trash.get(id); if (!d || d.acc !== S.acc) return;
+  clearTimeout(d.t); S.trash.delete(id); S.photos.set(id, d.p);
+  const w = d.where, L = S.layout;
+  mutate(() => {
+    if (w.zone === 'plan') planInsert({ id, locked: !!w.locked }, Math.min(w.idx, L.plan.length));
+    else if (w.zone === 'published') L.published.splice(Math.min(w.idx, L.published.length), 0, id);
+    else if (w.zone === 'pinned' && L.pinned.length < 3) L.pinned.splice(Math.min(w.idx, L.pinned.length), 0, { id, back: w.back });
+    else if (w.zone === 'pinned') L.published.unshift(id);
+    else L.buffer.splice(Math.min(w.idx, L.buffer.length), 0, id);
+  }, w.zone !== 'buffer', { focusId: id });
+}
+addEventListener('pagehide', () => { for (const id of [...S.trash.keys()]) finalizeDelete(id); });
+
+// ---------- действия ----------
+function setAttr(id, k, v){
+  const p = S.photos.get(id); if (!p) return;
+  const z = zoneOf(id);
+  mutate(() => { const m = { ...(p.manual || {}) }; if (v == null) delete m[k]; else m[k] = v; p.manual = m; }, !!z && z.zone !== 'buffer');
+}
+function doAction(act, id){
+  const z = zoneOf(id), L = S.layout; if (!z) return;
+  closeMenus();
+  switch (act){
+    case 'toPlan': return mutate(() => { removeId(id); planInsert({ id, locked: false }, 0); }, true, { focusId: id });
+    case 'toPublished': return mutate(() => { removeId(id); L.published.push(id); }, true, { focusId: id });
+    case 'toBuffer': return mutate(() => { removeId(id); L.buffer.unshift(id); }, true, { focusId: id });
+    case 'lock': { const was = !!(z.entry && z.entry.locked); return mutate(() => { zoneOf(id).entry.locked = !was; }, was); }
+    case 'publish':
+      mutate(() => { removeId(id); L.published.unshift(id); });
+      return toast('отмечено как опубликованное', { action: 'отменить', onAction: undo });
+    case 'unpublish': return mutate(() => { removeId(id); planInsert({ id, locked: false }, L.plan.length); }, true, { focusId: id });
+    case 'pin':
+      if (L.pinned.length >= 3) return toast('в профиле можно закрепить максимум 3 поста');
+      return mutate(() => { const back = L.published.indexOf(id); removeId(id); L.pinned.unshift({ id, back }); }, true, { focusId: id });
+    case 'unpin': return mutate(() => { const e = L.pinned.find(e => e.id === id); removeId(id); L.published.splice(Math.min(e.back ?? 0, L.published.length), 0, id); }, true, { focusId: id });
+    case 'crop': return openCrop(id);
+    case 'delete': return deletePhoto(id);
+  }
+}
+function canDrop(from, to){
+  if (!to) return [false];
+  if (to.zone === 'plan' && to.entry.locked) return [false, 'это место зафиксировано — сначала открепи его'];
+  if (to.zone === 'pinned' && from.zone !== 'pinned') return [false, 'закрепить в профиле можно через меню опубликованного поста'];
+  return [true];
+}
+// перенос: на клетку — встать именно туда (место фиксируется), на свободное место ленты — встать само, в буфер — убрать
+function handleDrop(id, t, anim){
+  const L = S.layout, from = zoneOf(id); if (!from) return;
+  if (t.kind === 'buffer') return mutate(() => { removeId(id); L.buffer.unshift(id); }, true, anim);
+  if (t.kind === 'feed') return mutate(() => { removeId(id); planInsert({ id, locked: false }, 0); }, true, anim);
+  const to = zoneOf(t.id); if (!to) return;
+  if (to.zone === 'plan'){
+    if (from.zone === 'plan') return mutate(() => { const a = from.entry, b = to.entry; a.id = b.id; a.locked = false; b.id = id; b.locked = true; }, true, anim);
+    return mutate(() => { removeId(id); planInsert({ id, locked: true }, L.plan.findIndex(e => e.id === t.id)); }, true, anim);
+  }
+  if (to.zone === 'published'){
+    if (from.zone === 'published') return mutate(() => { const i = from.idx, j = to.idx; [L.published[i], L.published[j]] = [L.published[j], L.published[i]]; }, true, anim);
+    return mutate(() => { removeId(id); const j = L.published.indexOf(t.id); L.published.splice(j, 0, id); }, true, anim);
+  }
+  if (to.zone === 'pinned' && from.zone === 'pinned') return mutate(() => { const i = from.idx, j = to.idx; [L.pinned[i], L.pinned[j]] = [L.pinned[j], L.pinned[i]]; }, true, anim);
+}
+
+// ---------- отрисовка ----------
+function avaHTML(name){
+  const cols = ['#2646a5', '#c5343d', '#5b84bd', '#8a7a3e', '#b0703a', '#6b5aa0'];
+  return `<span class="ava" style="--ava:${cols[hashStr(name) % cols.length]}">${esc((name || '?').trim().charAt(0) || '?')}</span>`;
+}
+function stampHTML(p){
+  const e = eff(p), rot = ((hashStr(p.id) % 9) - 4) * .5;
+  return `<div class="stamp-wrap" data-id="${p.id}" data-zone="buffer" style="--rot:${rot}deg">
+    <div class="stamp"><div class="stamp-img"><img src="${thumbUrl(p)}" alt="" draggable="false"></div>
+    <div class="stamp-cap"><span class="sw" style="background:${lab2hex(e.color)}"></span><span class="nm">${colorName(e.color)}</span>${isOn('person') && e.person ? `<span class="pv">${ABBR.person[e.person]}</span>` : ''}</div></div>
+    <button class="hb stamp-up" data-hb="toPlan" title="в ленту · ↵">${I.up}</button>
+    <button class="hb stamp-more" data-hb="menu" title="действия">${I.more}</button></div>`;
+}
+function renderBuffer(){
+  const L = S.layout, n = L.buffer.length;
+  $('#bufferPanel').classList.toggle('is-empty', !n);
+  reconcile($('#stamps'), L.buffer.map(id => ({ key: id, html: stampHTML(S.photos.get(id)) })));
+  applySel();
+  $('#bufCount').textContent = n ? String(n) : '';
+  $('#bufferFoot').hidden = n < 2;
+}
+function cellHTML(d, cl, planLen){
+  const p = S.photos.get(d.id), e = eff(p);
+  let tl = '', st = '', extra = '';
+  if (d.zone === 'plan'){
+    const num = planLen - d.idx;
+    tl = num === 1 ? '<span class="b-num next">следующий</span>' : `<span class="b-num">№${num}</span>`;
+    st = `<button class="hb lock-btn${d.locked ? ' on' : ''}" data-hb="lock" title="${d.locked ? 'место зафиксировано — открепить' : 'зафиксировать место'} · L">${d.locked ? I.lock : I.unlock}</button>`;
+    if (num === 1) extra = `<button class="hb pub-btn" data-hb="publish" title="отметить опубликованным · P">${I.check}<span>выложено</span></button>`;
+  }
+  if (d.zone === 'published') st = `<span class="pm" title="опубликовано">${I.post}</span>`;
+  if (d.zone === 'pinned') st = `<span class="pm" title="закреплено в профиле">${I.pin}</span>`;
+  const info = ['light', 'warm', 'busy', 'person'].filter(k => isOn(k) && e[k]).map(k => ABBR[k][e[k]]).join(' · ');
+  return `<div class="cell z-${d.zone}${cl.length ? ' clash' : ''}" data-id="${d.id}" data-zone="${d.zone}">
+    <img src="${thumbUrl(p)}" alt="" draggable="false">
+    ${tl ? `<div class="ov-tl">${tl}</div>` : ''}
+    <div class="ov-tr"><button class="hb more-btn" data-hb="menu" title="действия">${I.more}</button>${st}</div>
+    ${cl.length ? `<div class="ov-bl">${cl.map(k => `<span class="ctag">${SHORT[k]}</span>`).join('')}</div>` : ''}
+    ${extra}
+    <div class="ov-info"><i class="sw" style="background:${lab2hex(e.color)}"></i>${esc(colorName(e.color))}${info ? ' · ' + info : ''}</div></div>`;
+}
+function renderGrid(){
+  const D = displayList(), cl = computeClashes(D), L = S.layout;
+  if (D.length) reconcile($('#feed'), D.map((d, i) => ({ key: d.id, html: cellHTML(d, cl.cells[i], L.plan.length) })));
+  else $('#feed').innerHTML = `<div class="feed-empty"><div class="ghosts">${'<i></i>'.repeat(9)}</div><p><span><em>лента пуста</em>перетащи сюда фото из буфера</span></p></div>`;
+  applySel(); drawBounds();
+  $('#stats').innerHTML = L.plan.length ? `${L.plan.length} в плане${cl.pairs ? ` · <b>${cl.pairs}</b> похож${plural(cl.pairs, 'ая пара', 'их пары', 'их пар')} рядом` : ''}` : '';
+}
+function drawBounds(){
+  const box = $('#bounds'), feed = $('#feed'), cells = $$('.cell', feed);
+  box.innerHTML = ''; if (!cells.length) return;
+  const W = feed.clientWidth, H = feed.clientHeight, gap = 3, L = S.layout, pc = L.pinned.length, pl = L.plan.length;
+  const paths = [], tags = [];
+  const mk = (b, cls, label) => {
+    if (b <= 0 || b >= cells.length) return;
+    const c = cells[b], yT = c.offsetTop - gap / 2, yB = c.offsetTop + c.offsetHeight + gap / 2, xC = c.offsetLeft - gap / 2;
+    paths.push(`<path class="${cls}" d="${b % 3 === 0 ? `M0,${yT} H${W}` : `M0,${yB} H${xC} V${yT} H${W}`}"/>`);
+    if (label) tags.push(`<span class="btag" style="top:${yT}px">${label}</span>`);
+  };
+  if (pc && pl) mk(pc, 'pin-line');
+  if (pl && L.published.length) mk(pc + pl, 'pub-line', 'опубликовано');
+  box.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths.join('')}</svg>${tags.join('')}`;
+}
+function renderInspector(){
+  const el = $('#inspector'), id = S.selected, p = id && S.photos.get(id);
+  if (!p){
+    el.innerHTML = `<div class="panel-head"><h2>марка</h2></div>
+      <div class="empty"><div class="ghost-stamp">${I.star}</div><h3>выбери фото</h3>
+        <p>в буфере или в ленте —<br>здесь будут его цвет и признаки</p>
+        <p style="margin-top:12px"><b>перетащи</b> — переставить · <b>2× клик</b> — обрезать<br><b>правый клик</b> — все действия</p>
+        <button class="btn-text" data-open="help">горячие клавиши</button></div>`;
+    return;
+  }
+  const z = zoneOf(id), e = eff(p), a = p.auto || {};
+  let status = '';
+  if (z.zone === 'buffer') status = `<span class="status">${I.inbox}в буфере</span>`;
+  if (z.zone === 'plan'){ const num = S.layout.plan.length - z.idx; status = `<span class="status${num === 1 ? ' next' : ''}">${z.entry.locked ? I.lock : ''}${num === 1 ? 'следующий пост' : `в плане · №${num}`}</span>`; }
+  if (z.zone === 'published') status = `<span class="status">${I.post}опубликовано</span>`;
+  if (z.zone === 'pinned') status = `<span class="status">${I.pin}закреплено в профиле</span>`;
+  const seg = k => {
+    const A = ATTRS[k], autoV = k === 'person' ? null : a[k];
+    const val = k === 'busy' && a.busyScore != null ? `${Math.round(a.busyScore * 100)}% контуров` : k === 'light' && a.meanL != null ? `яркость ${Math.round(a.meanL)}` : '';
+    return `<div class="attr"><div class="attr-h"><span>${A.title}</span>${val ? `<span class="val">${val}</span>` : ''}</div>
+      <div class="seg">${A.opts.map(([v, l]) => `<button data-set="${k}" data-val="${v}" class="${e[k] === v ? 'on' : ''}${autoV === v ? ' auto' : ''}">${l}</button>`).join('')}</div></div>`;
+  };
+  const pal = (a.palette || []).map(c => `<button class="pal${e.color && dE(e.color, c.lab) < .6 ? ' on' : ''}" data-color="${c.lab.join(',')}" style="background:${lab2hex(c.lab)}" title="${colorName(c.lab)} · ${Math.round(c.w * 100)}% кадра"></button>`).join('');
+  el.innerHTML = `<div class="panel-head"><h2>марка</h2><button class="icon-btn" id="inspMore" style="margin-left:auto" title="действия">${I.more}</button></div>
+    <div class="panel-body">
+      <div class="insp-top">
+        <div class="insp-prev" title="обрезать"><div class="stamp-wrap" style="--rot:-1.5deg"><div class="stamp"><div class="stamp-img"><img src="${thumbUrl(p)}" alt="" draggable="false"></div></div></div><span class="crop-hint">${I.crop}</span></div>
+        <div class="insp-meta">${status}<div class="fname" title="${esc(p.name)}">${esc(p.name)}</div></div>
+      </div>
+      ${isOn('color') ? `<div class="attr"><div class="attr-h"><span>главный цвет</span></div>
+        <div class="color-row"><span class="sw" style="background:${lab2hex(e.color)}"></span><span class="cname">${colorName(e.color)}</span></div>
+        <div class="pal-row">${pal}<label class="pal pick" title="свой цвет">${I.plus}<input type="color" id="pickColor" value="${e.color ? lab2hex(e.color) : '#888888'}"></label></div></div>` : ''}
+      ${['light', 'warm', 'busy', 'person'].filter(isOn).map(seg).join('')}
+      <p class="auto-note"><i></i>так определилось автоматически</p>
+    </div>`;
+}
+function neighborMap(s){
+  let h = '';
+  for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++){
+    const ar = Math.abs(r), ac = Math.abs(c); let w = 0;
+    if (!r && !c) w = -1; else if ((ar === 1 && !c) || (ac === 1 && !r)) w = 1; else if (ar === 1 && ac === 1) w = s.wDiag; else if ((ar === 2 && !c) || (ac === 2 && !r)) w = s.wFar;
+    h += `<i style="${w < 0 ? 'background:var(--red)' : `background:var(--blue-deep);opacity:${(.07 + w * .93).toFixed(2)}`}"></i>`;
+  }
+  return h;
+}
+function renderSettings(){
+  const s = S.settings;
+  $('#settings').innerHTML = `<div class="panel-head"><h2>раскладка</h2><button class="icon-btn" data-close="settings" style="margin-left:auto" title="закрыть"><svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <div class="panel-body">
+      <div class="set-sec"><h4>что разносить подальше</h4>
+        ${ATTR_KEYS.map(k => `<div class="attr-row ${isOn(k) ? 'on' : 'off'}"><button class="switch${isOn(k) ? ' on' : ''}" data-toggle="${k}" role="switch" aria-checked="${isOn(k)}" title="${isOn(k) ? 'выключить' : 'включить'}"></button><span class="nm">${ATTR_TITLE[k]}</span>${isOn(k) ? `<input type="range" data-k="w.${k}" min="0.2" max="3" step="0.1" value="${s.weights[k]}" title="важность">` : ''}</div>`).join('')}
+        <p class="note">ползунок — насколько важно не ставить рядом похожие</p></div>
+      ${isOn('color') ? `<div class="set-sec"><h4>когда цвета считать одинаковыми</h4><input type="range" data-k="tol" min="5" max="60" step="1" value="${s.tol}"><div class="range-labels"><span>строже</span><span>мягче</span></div></div>` : ''}
+      <div class="set-sec"><h4>кто считается соседом</h4>
+        <div class="nbr"><div class="nbr-map" id="nbrMap">${neighborMap(s)}</div>
+          <div class="nbr-sliders"><div class="sl-title">по диагонали</div><input type="range" data-k="wDiag" min="0" max="1" step="0.05" value="${s.wDiag}">
+          <div class="sl-title">через одну</div><input type="range" data-k="wFar" min="0" max="1" step="0.05" value="${s.wFar}"></div></div>
+        <p class="note">слева-справа и сверху-снизу — всегда в полную силу</p></div>
+      <div class="set-sec"><div class="row-between"><span class="nm" style="font-size:13px">поправлять ленту сама</span><button class="switch${s.auto ? ' on' : ''}" data-auto role="switch" aria-checked="${s.auto}"></button></div>
+        <div class="row" style="margin-top:12px"><button class="btn quiet sm" id="relayoutBtn">собрать заново</button></div>
+        <p class="note">после ручных перестановок лента поправляется аккуратно, двигая минимум фото. «собрать заново» и ✦ — полная пересборка.</p></div>
+      <div class="set-sec"><h4>цветовая карта</h4><div class="row-between" style="align-items:flex-start"><div class="minimap" id="minimap"></div><p class="note" style="margin:0">главный цвет каждого поста по порядку. бледные — уже опубликованы.</p></div></div>
+    </div>`;
+  renderMiniMap(); updateTopbar();
+}
+function renderMiniMap(){ const el = $('#minimap'); if (el) el.innerHTML = displayList().slice(0, 36).map(d => `<i class="${d.zone}" style="background:${lab2hex(eff(S.photos.get(d.id)).color)}"></i>`).join(''); }
+function updateTopbar(){
+  $('#undoBtn').disabled = !S.undo.length; $('#redoBtn').disabled = !S.redo.length;
+  $('#shuffleBtn').disabled = !S.acc; $('#settingsBtn').disabled = !S.acc;
+  const rb = $('#relayoutBtn'); if (rb) rb.classList.toggle('blue', S.dirty);
+}
+function renderAll(){ renderBuffer(); renderGrid(); renderInspector(); renderMiniMap(); updateTopbar(); }
+// Клетки и марки не пересоздаются, если не изменились: браузеру не нужно заново
+// раскладывать и декодировать превью — отсюда меньше подвисаний после перетаскивания.
+function reconcile(box, items){
+  const old = new Map();
+  for (const el of [...box.children]){ if (el._key) old.set(el._key, el); else el.remove(); }
+  let prev = null;
+  for (const { key, html } of items){
+    let el = old.get(key);
+    if (el) old.delete(key);
+    if (!el || el._html !== html){
+      const t = document.createElement('template'); t.innerHTML = html.trim();
+      const nel = t.content.firstElementChild; nel._key = key; nel._html = html;
+      if (el) el.replaceWith(nel);
+      el = nel;
+    }
+    const want = prev ? prev.nextElementSibling : box.firstElementChild;
+    if (el !== want) box.insertBefore(el, want);
+    prev = el;
+  }
+  for (const el of old.values()) el.remove();
+}
+function applySel(){
+  for (const el of $$('.cell.sel, .stamp-wrap.sel')) el.classList.remove('sel');
+  if (S.selected) for (const el of $$(`.cell[data-id="${S.selected}"], .stamp-wrap[data-id="${S.selected}"]`)) if (!el.closest('.insp-prev')) el.classList.add('sel');
+}
+function select(id){
+  if (id && !S.photos.has(id)) id = null;
+  S.selected = id; applySel(); renderInspector();
+}
+let toastT;
+function toast(msg, opt = {}){
+  const t = $('#toast'); clearTimeout(toastT);
+  t.innerHTML = I.star + `<span>${esc(msg)}</span>` + (opt.action ? `<button class="toast-act">${esc(opt.action)}</button>` : '');
+  t.classList.add('on'); t.classList.toggle('act', !!opt.action);
+  if (opt.action) t.querySelector('.toast-act').onclick = () => { t.classList.remove('on'); opt.onAction(); };
+  toastT = setTimeout(() => t.classList.remove('on'), opt.action ? 6000 : 2600);
+}
+
+// ---------- меню ----------
+function closeMenus(){ $('#ctx').hidden = true; $('#accPop').hidden = true; }
+function openMenu(id, x, y){
+  const z = zoneOf(id); if (!z) return;
+  const items = [];
+  const it = (act, icon, label, kbd = '', cls = '') => items.push(`<button class="mi ${cls}" data-act="${act}">${I[icon]}<span>${label}</span>${kbd ? `<span class="kbd">${kbd}</span>` : ''}</button>`);
+  if (z.zone === 'buffer'){ it('toPlan', 'up', 'в ленту', '↵'); it('toPublished', 'post', 'уже опубликовано'); }
+  if (z.zone === 'plan'){ it('lock', z.entry.locked ? 'unlock' : 'lock', z.entry.locked ? 'открепить место' : 'зафиксировать место', 'L'); it('publish', 'check', 'отметить опубликованным', 'P'); }
+  if (z.zone === 'published'){ it('pin', 'pin', 'закрепить в профиле'); it('unpublish', 'undo', 'вернуть в план'); }
+  if (z.zone === 'pinned') it('unpin', 'pin', 'открепить из профиля');
+  items.push('<hr>');
+  it('crop', 'crop', 'обрезать', '2× клик');
+  if (z.zone !== 'buffer') it('toBuffer', 'inbox', 'убрать в буфер', '⌫');
+  it('delete', 'trash', 'удалить', z.zone === 'buffer' ? '⌫' : '', 'danger');
+  const m = $('#ctx'); m.innerHTML = items.join(''); m.dataset.id = id; m.hidden = false; $('#accPop').hidden = true;
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+  m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+}
+$('#ctx').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) doAction(b.dataset.act, $('#ctx').dataset.id); });
+
+// ---------- обрезка ----------
+let CROP = null, cropDrag = null;
+async function openCrop(id){
+  closeMenus();
+  let blob = null;
+  try { const r = await fetch(accUrl(`/photos/${id}/src`)); if (r.ok) blob = await r.blob(); } catch (e){ console.warn(e); }
+  if (!blob) return toast('исходник не найден');
+  const img = await blobToImage(blob), p = S.photos.get(id); if (!p) return;
+  CROP = { id, img, crop: { ...p.crop } };
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const sc = Math.min(Math.min(560, innerWidth - 300) / iw, Math.min(560, innerHeight - 180) / ih);
+  CROP.W = Math.round(iw * sc); CROP.H = Math.round(ih * sc);
+  const cv = $('#cropCanvas'), dpr = devicePixelRatio || 1;
+  cv.width = CROP.W * dpr; cv.height = CROP.H * dpr; cv.style.width = CROP.W + 'px'; cv.style.height = CROP.H + 'px';
+  $('#cropZoom').value = CROP.crop.zoom;
+  $('#cropModal').hidden = false; drawCropUI();
+}
+function setCropCenter(cx, cy){
+  const { img, crop } = CROP, iw = img.naturalWidth, ih = img.naturalHeight;
+  crop.cx = cx; crop.cy = cy; const r = cropRect(iw, ih, crop);
+  crop.cx = (r.x + r.w / 2) / iw; crop.cy = (r.y + r.h / 2) / ih;
+}
+function drawCropUI(){
+  const { img, crop, W, H } = CROP, ctx = $('#cropCanvas').getContext('2d'), dpr = devicePixelRatio || 1;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H); ctx.drawImage(img, 0, 0, W, H);
+  const sc = W / img.naturalWidth, r = cropRect(img.naturalWidth, img.naturalHeight, crop);
+  const x = r.x * sc, y = r.y * sc, w = r.w * sc, h = r.h * sc;
+  ctx.fillStyle = 'rgba(34,49,78,.6)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x, y, w, h); ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(251,248,242,.45)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i = 1; i < 3; i++){ ctx.moveTo(x + w * i / 3, y); ctx.lineTo(x + w * i / 3, y + h); ctx.moveTo(x, y + h * i / 3); ctx.lineTo(x + w, y + h * i / 3); }
+  ctx.stroke();
+  ctx.strokeStyle = '#fbf8f2'; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); ctx.setLineDash([]);
+  $('#cropPreview').getContext('2d').drawImage(drawCrop(img, crop, 300, 400), 0, 0);
+}
+function closeCrop(){ $('#cropModal').hidden = true; CROP = null; cropDrag = null; }
+async function saveCrop(){
+  if (!CROP) return;
+  const { id, img, crop } = CROP, p = S.photos.get(id); closeCrop(); if (!p) return;
+  pushUndo();
+  p.crop = { ...crop }; p.auto = analyze(img, p.crop); p.thumbV = (p.thumbV || 1) + 1;
+  const tb = await canvasToBlob(drawCrop(img, p.crop, 450, 600), .85);
+  const old = S.localUrls.get(id); S.localUrls.set(id, URL.createObjectURL(tb)); if (old) URL.revokeObjectURL(old);
+  const z = zoneOf(id); if (z && z.zone !== 'buffer'){ if (S.settings.auto) layoutPlan(); else S.dirty = true; }
+  persist(); renderAll();
+  try { await API.put(accUrl(`/photos/${id}/thumb`), tb); await savePhoto(p); } catch (e){ console.warn(e); setSync('error'); toast('обрезка не сохранилась на сервере'); }
+}
+const cropCv = $('#cropCanvas');
+cropCv.addEventListener('pointerdown', e => { if (!CROP) return; cropCv.setPointerCapture(e.pointerId); cropDrag = { x: e.clientX, y: e.clientY, cx: CROP.crop.cx, cy: CROP.crop.cy }; cropCv.style.cursor = 'grabbing'; });
+cropCv.addEventListener('pointermove', e => { if (!cropDrag || !CROP) return; setCropCenter(cropDrag.cx + (e.clientX - cropDrag.x) / CROP.W, cropDrag.cy + (e.clientY - cropDrag.y) / CROP.H); drawCropUI(); });
+cropCv.addEventListener('pointerup', () => { cropDrag = null; cropCv.style.cursor = 'grab'; });
+cropCv.addEventListener('wheel', e => { if (!CROP) return; e.preventDefault(); CROP.crop.zoom = clamp(CROP.crop.zoom * (e.deltaY < 0 ? 1.06 : 1 / 1.06), 1, 4); setCropCenter(CROP.crop.cx, CROP.crop.cy); $('#cropZoom').value = CROP.crop.zoom; drawCropUI(); }, { passive: false });
+$('#cropZoom').addEventListener('input', e => { if (!CROP) return; CROP.crop.zoom = +e.target.value; setCropCenter(CROP.crop.cx, CROP.crop.cy); drawCropUI(); });
+$('#cropCenter').addEventListener('click', () => { if (!CROP) return; CROP.crop = { cx: .5, cy: .5, zoom: 1 }; $('#cropZoom').value = 1; drawCropUI(); });
+$('#cropSave').addEventListener('click', saveCrop);
+
+// ---------- перетаскивание (свой, на pointer-событиях: плавно и работает с тачем) ----------
+const DND = { pending: null, active: null, lastEnd: 0 };
+document.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || !S.acc) return;
+  if (e.target.closest('button, input, label, .menu')) return;
+  const el = e.target.closest('.cell[data-id], .stamp-wrap[data-id]');
+  if (!el || el.closest('.insp-prev')) return;
+  DND.pending = { id: el.dataset.id, el, x: e.clientX, y: e.clientY };
+});
+addEventListener('pointermove', e => {
+  const p = DND.pending;
+  if (p && !DND.active){ if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) return; startDrag(p, e); }
+  const d = DND.active;
+  if (d){ // двигаем «марку» и ищем цель не чаще раза в кадр
+    e.preventDefault(); d.x = e.clientX; d.y = e.clientY;
+    if (!d.raf) d.raf = requestAnimationFrame(() => { d.raf = 0; if (DND.active === d) moveDrag(d); });
+  }
+});
+addEventListener('pointerup', e => { if (DND.active) endDrag(e); DND.pending = null; });
+addEventListener('pointercancel', () => { if (DND.active) endDrag(null); DND.pending = null; });
+function startDrag(p, e){
+  closeMenus();
+  const img = p.el.querySelector('img');
+  const g = document.createElement('div'); g.className = 'ghost';
+  g.innerHTML = `<div class="stamp"><div class="stamp-img"><img src="${img.currentSrc || img.src}" alt=""></div></div>`;
+  document.body.appendChild(g);
+  DND.active = { ...p, ghost: g, srcRect: img.getBoundingClientRect(), target: null, x: e.clientX, y: e.clientY };
+  p.el.classList.add('lifted'); document.body.classList.add('dragging');
+  moveDrag(DND.active);
+  if (!REDUCED) g.firstElementChild.animate([{ transform: 'scale(.8)', opacity: .6 }, { transform: 'none', opacity: 1 }], { duration: 160, easing: 'ease-out' });
+  requestAnimationFrame(autoScroll);
+}
+function moveDrag(d){
+  d.ghost.style.transform = `translate(${d.x - 46}px,${d.y - 55}px) rotate(-4deg)`;
+  const t = dropTargetAt(d.x, d.y, d.id);
+  setDropTarget(t); d.target = t;
+}
+function dropTargetAt(x, y, id){
+  const el = document.elementFromPoint(x, y); if (!el) return null;
+  const from = zoneOf(id); if (!from) return null;
+  const c = el.closest('.cell[data-id]');
+  if (c){
+    if (c.dataset.id === id) return { kind: 'self' };
+    const [ok, why] = canDrop(from, zoneOf(c.dataset.id));
+    return { kind: 'cell', id: c.dataset.id, el: c, ok, why };
+  }
+  if (el.closest('#bufferPanel')) return from.zone === 'buffer' ? { kind: 'self' } : { kind: 'buffer', el: $('#bufferPanel'), ok: true };
+  if (el.closest('#feedPanel')) return from.zone === 'buffer' ? { kind: 'feed', el: $('#feedPanel'), ok: true } : { kind: 'self' };
+  return null;
+}
+let dropEl = null;
+function setDropTarget(t){
+  const el = t && t.el || null, cls = !t ? '' : t.kind === 'cell' ? (t.ok ? 'drop-target' : 'drop-no') : t.kind === 'buffer' ? 'drop-in' : t.kind === 'feed' ? 'drop-auto' : '';
+  if (dropEl && (dropEl !== el || !dropEl.classList.contains(cls))) dropEl.classList.remove('drop-target', 'drop-no', 'drop-in', 'drop-auto');
+  dropEl = el; if (el && cls) el.classList.add(cls);
+}
+function autoScroll(){
+  const d = DND.active; if (!d) return;
+  for (const sc of scrollers()){
+    const r = sc.getBoundingClientRect();
+    if (d.x < r.left || d.x > r.right) continue;
+    const before = sc.scrollTop;
+    if (d.y < r.top + 50 && d.y > r.top - 30) sc.scrollTop -= 10;
+    else if (d.y > r.bottom - 50 && d.y < r.bottom + 30) sc.scrollTop += 10;
+    if (sc.scrollTop !== before) moveDrag(d); // под неподвижным курсором проехала другая клетка
+  }
+  requestAnimationFrame(autoScroll);
+}
+function endDrag(e){
+  const d = DND.active; DND.active = null; DND.lastEnd = performance.now();
+  if (d.raf){ cancelAnimationFrame(d.raf); d.raf = 0; }
+  if (e){ d.x = e.clientX; d.y = e.clientY; moveDrag(d); } // цель — ровно там, где отпустили
+  document.body.classList.remove('dragging'); setDropTarget(null);
+  const t = e ? d.target : null, gimg = d.ghost.querySelector('img'), ghostRect = gimg.getBoundingClientRect();
+  if (!t || t.kind === 'self' || !t.ok){
+    if (t && t.why) toast(t.why);
+    const back = d.el.isConnected ? d.el.querySelector('img').getBoundingClientRect() : d.srcRect;
+    const a = d.ghost.animate([{ transform: d.ghost.style.transform, opacity: 1 }, { transform: `translate(${back.left - 7}px,${back.top - 7}px) rotate(0deg)`, opacity: .3 }], { duration: REDUCED ? 0 : 220, easing: 'ease-in' });
+    a.onfinish = () => { d.ghost.remove(); d.el.classList.remove('lifted'); };
+    return;
+  }
+  d.ghost.remove(); d.el.classList.remove('lifted');
+  handleDrop(d.id, t, { ghost: { id: d.id, rect: ghostRect } });
+}
+
+// ---------- клики и меню ----------
+document.addEventListener('click', e => {
+  if (performance.now() - DND.lastEnd < 250) return;
+  const open = e.target.closest('[data-open]'); if (open && open.dataset.open === 'help'){ $('#helpModal').hidden = false; return; }
+  const cl = e.target.closest('[data-close]');
+  if (cl){ const w = cl.dataset.close; if (w === 'crop') closeCrop(); if (w === 'help') $('#helpModal').hidden = true; if (w === 'settings') toggleSettings(false); return; }
+  if (e.target.classList.contains('modal')){ if (e.target.id === 'cropModal') closeCrop(); else e.target.hidden = true; return; }
+  const hb = e.target.closest('.hb');
+  if (hb){
+    const id = hb.closest('[data-id]').dataset.id;
+    if (hb.dataset.hb === 'menu'){ select(id); const r = hb.getBoundingClientRect(); return openMenu(id, r.right - 230, r.bottom + 6); }
+    return doAction(hb.dataset.hb, id);
+  }
+  if (!e.target.closest('.menu, #accBtn')) closeMenus();
+  if (e.target.closest('.insp-prev')) return S.selected && openCrop(S.selected);
+  if (e.target.closest('#inspMore')){ const r = e.target.closest('#inspMore').getBoundingClientRect(); return openMenu(S.selected, r.right - 230, r.bottom + 6); }
+  const c = e.target.closest('.cell[data-id], .stamp-wrap[data-id]');
+  if (c) return select(c.dataset.id);
+  if (e.target.closest('#feedScroll, #bufferBody') && !e.target.closest('.drop')) select(null);
+});
+document.addEventListener('dblclick', e => { const c = e.target.closest('.cell[data-id], .stamp-wrap[data-id]'); if (c && !c.closest('.insp-prev')) openCrop(c.dataset.id); });
+document.addEventListener('contextmenu', e => {
+  const c = e.target.closest('.cell[data-id], .stamp-wrap[data-id]'); if (!c || c.closest('.insp-prev')) return;
+  e.preventDefault(); select(c.dataset.id); openMenu(c.dataset.id, e.clientX, e.clientY);
+});
+['#feedScroll', '#bufferBody'].forEach(s => $(s).addEventListener('scroll', () => { $('#ctx').hidden = true; }, { passive: true }));
+
+$('#inspector').addEventListener('click', e => {
+  const id = S.selected, b = e.target.closest('button'); if (!id || !b) return;
+  const p = S.photos.get(id);
+  if (b.dataset.set){
+    const k = b.dataset.set, v = b.dataset.val, cur = eff(p)[k];
+    if (k === 'person') return setAttr(id, k, cur === v ? null : v);
+    return setAttr(id, k, v === (p.auto || {})[k] ? null : v);
+  }
+  if (b.dataset.color){ const lab = b.dataset.color.split(',').map(Number), auto = (p.auto || {}).color; return setAttr(id, 'color', auto && dE(auto, lab) < .6 ? null : lab); }
+});
+$('#inspector').addEventListener('change', e => { if (e.target.id === 'pickColor' && S.selected) setAttr(S.selected, 'color', hex2lab(e.target.value)); });
+
+// ---------- настройки раскладки ----------
+function toggleSettings(force){
+  const d = $('#settings'), open = force ?? !d.classList.contains('open');
+  d.classList.toggle('open', open); $('#settingsBtn').classList.toggle('on', open);
+}
+$('#settingsBtn').addEventListener('click', () => toggleSettings());
+let pendingSnap = null, liveFrame = 0;
+const settingsEl = $('#settings');
+settingsEl.addEventListener('pointerdown', e => { if (e.target.matches('input[type=range]')) pendingSnap = snapshot(); });
+settingsEl.addEventListener('keydown', e => { if (e.target.matches('input[type=range]') && !pendingSnap) pendingSnap = snapshot(); });
+settingsEl.addEventListener('input', e => {
+  const t = e.target; if (!t.matches('input[type=range]')) return;
+  const k = t.dataset.k, v = +t.value;
+  if (k.startsWith('w.')) S.settings.weights[k.slice(2)] = v; else S.settings[k] = v;
+  if (k === 'wDiag' || k === 'wFar') $('#nbrMap').innerHTML = neighborMap(S.settings);
+  cancelAnimationFrame(liveFrame);
+  liveFrame = requestAnimationFrame(() => {
+    const prev = captureRects();
+    if (S.settings.auto) layoutPlan(); else S.dirty = true;
+    renderGrid(); renderMiniMap(); updateTopbar(); animateFrom(prev);
+  });
+});
+settingsEl.addEventListener('change', e => {
+  if (!e.target.matches('input[type=range]')) return;
+  if (pendingSnap){ S.undo.push(pendingSnap); S.redo.length = 0; pendingSnap = null; }
+  persist(); updateTopbar();
+});
+settingsEl.addEventListener('click', e => {
+  if (e.target.closest('#relayoutBtn')) return mutate(() => {}, true, { force: true, fresh: true });
+  const t = e.target.closest('[data-toggle]');
+  if (t){ const k = t.dataset.toggle; mutate(() => { S.settings.enabled = { ...DEFAULTS.enabled, ...S.settings.enabled, [k]: !isOn(k) }; }); return renderSettings(); }
+  if (e.target.closest('[data-auto]')){ const on = !S.settings.auto; mutate(() => { S.settings.auto = on; }, on); renderSettings(); }
+});
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
+$('#shuffleBtn').addEventListener('click', () => {
+  if (S.layout.plan.filter(e => !e.locked).length < 2) return toast('в плане пока нечего перемешивать');
+  mutate(() => { let s; do { s = 1 + Math.floor(Math.random() * 9999); } while (s === S.seed); S.seed = s; }, true, { force: true, fresh: true });
+  toast(`вариант №${S.seed}`, { action: 'вернуть', onAction: undo });
+});
+$('#allToFeed').addEventListener('click', () => mutate(() => {
+  const L = S.layout, ids = L.buffer.slice(); L.buffer = [];
+  for (let i = ids.length - 1; i >= 0; i--) planInsert({ id: ids[i], locked: false }, 0);
+}, true, { fresh: true }));
+$('#fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+// файлы с компьютера можно бросить в любое место окна
+document.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')){ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; $('#bufferPanel').classList.add('drop-in'); } });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('#bufferPanel').classList.remove('drop-in'); });
+document.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){ e.preventDefault(); $('#bufferPanel').classList.remove('drop-in'); addFiles(e.dataTransfer.files); } });
+
+// ---------- клавиатура (по коду клавиши — работает и в русской раскладке) ----------
+document.addEventListener('keydown', e => {
+  if (!$('#gate').hidden){ if (e.key === 'Escape' && S.acc) hideGate(); return; }
+  if (!$('#cropModal').hidden){ if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') saveCrop(); return; }
+  if (!$('#helpModal').hidden){ if (e.key === 'Escape' || e.key === '?') $('#helpModal').hidden = true; return; }
+  if (e.target.matches && e.target.matches('input:not([type=range]), textarea, select')) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.code === 'KeyZ'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && e.code === 'KeyY'){ e.preventDefault(); redo(); return; }
+  if (mod || e.altKey) return;
+  if (e.key === 'Escape'){ if (!$('#ctx').hidden || !$('#accPop').hidden) return closeMenus(); if ($('#settings').classList.contains('open')) return toggleSettings(false); return select(null); }
+  if (e.key === '?' || (e.code === 'Slash' && e.shiftKey)){ $('#helpModal').hidden = false; return; }
+  const id = S.selected; if (!id) return;
+  const z = zoneOf(id); if (!z) return;
+  const digit = { Digit1: 'none', Digit2: 'people', Digit3: 'me', Digit4: 'selfie' }[e.code];
+  if (digit && isOn('person')){ const cur = (S.photos.get(id).manual || {}).person; setAttr(id, 'person', cur === digit ? null : digit); return; }
+  if (e.code === 'Digit0' && isOn('person')){ setAttr(id, 'person', null); return; }
+  if (e.code === 'KeyL' && z.zone === 'plan') return doAction('lock', id);
+  if (e.code === 'KeyP' && z.zone === 'plan') return doAction('publish', id);
+  if (e.key === 'Enter' && z.zone === 'buffer') return doAction('toPlan', id);
+  if (e.key === 'Backspace' || e.key === 'Delete'){ e.preventDefault(); return doAction(z.zone === 'buffer' ? 'delete' : 'toBuffer', id); }
+});
+addEventListener('resize', () => drawBounds());
+
+// ---------- аккаунты и вход по PIN ----------
+const curAccount = () => S.accounts.find(a => a.id === S.acc);
+async function refreshAccounts(){
+  try { const r = await API.get('/api/accounts'); S.accounts = r.accounts; S.inviteRequired = !!r.inviteRequired; }
+  catch (e){ console.warn(e); toast('сервер недоступен'); }
+  renderAccounts();
+}
+function renderAccounts(){
+  const a = curAccount();
+  $('#accName').textContent = a ? a.name : 'войти';
+  $('#accAva').outerHTML = a ? avaHTML(a.name).replace('class="ava"', 'class="ava" id="accAva"') : '<span class="ava" id="accAva">?</span>';
+  $('#accPop').innerHTML = `<div class="mh">аккаунты</div>
+    ${S.accounts.map(x => `<button class="mi${x.id === S.acc ? ' cur' : ''}" data-acc="${x.id}">${avaHTML(x.name)}<span>${esc(x.name)}</span><span class="tail">${x.id === S.acc ? I.check : x.unlocked ? '' : I.lock}</span></button>`).join('')}
+    <hr><button class="mi" data-acc-act="new">${I.plus}<span>новый аккаунт</span></button>
+    ${S.acc ? `<button class="mi" data-acc-act="rename">${I.edit}<span>переименовать</span></button>
+    <button class="mi" data-acc-act="changepin">${I.key}<span>сменить PIN</span></button>
+    <button class="mi" data-acc-act="lock">${I.out}<span>выйти из аккаунта</span></button>
+    <hr><button class="mi danger" data-acc-act="deleteacc">${I.trash}<span>удалить аккаунт</span></button>` : ''}`;
+}
+function clearAccountState(){
+  for (const id of [...S.trash.keys()]) finalizeDelete(id);
+  for (const u of S.localUrls.values()) URL.revokeObjectURL(u);
+  S.localUrls.clear(); S.photos.clear(); S.undo = []; S.redo = []; S.selected = null; S.dirty = false; S.rev = 0;
+  S.layout = { buffer: [], plan: [], published: [], pinned: [] }; S.settings = structuredClone(DEFAULTS); S.seed = 1;
+}
+function mergeSettings(s){ s = s || {}; return { ...structuredClone(DEFAULTS), ...s, weights: { ...DEFAULTS.weights, ...(s.weights || {}) }, enabled: { ...DEFAULTS.enabled, ...(s.enabled || {}) } }; }
+async function loadAccount(accId){
+  clearTimeout(saveTimer);
+  let data;
+  try { data = await API.get(`/api/acc/${encodeURIComponent(accId)}`); }
+  catch (e){
+    if (e.status === 401) return showGate('pin', accId);
+    if (e.status === 404){ await refreshAccounts(); return showGate('list'); }
+    return toast('сервер недоступен');
+  }
+  clearAccountState();
+  S.acc = accId; S.rev = data.rev;
+  for (const m of data.photos){ m.manual = {}; S.photos.set(m.id, m); }
+  const st = data.state;
+  if (st){
+    S.layout = st.layout || S.layout; S.seed = st.seed || 1; S.settings = mergeSettings(st.settings);
+    for (const [pid, m] of Object.entries(st.manual || {})){ const p = S.photos.get(pid); if (p) p.manual = m; }
+  }
+  try { localStorage.setItem('kl.acc', accId); } catch (e){}
+  const a = S.accounts.find(x => x.id === accId);
+  if (a){ a.unlocked = true; a.name = data.account.name; } else await refreshAccounts();
+  hideGate(); sanitizeLayout(); renderAccounts(); renderSettings(); renderAll(); setSync('ok');
+}
+async function switchAccount(id){
+  if (id === S.acc) return;
+  const a = S.accounts.find(x => x.id === id);
+  if (a && !a.unlocked) return showGate('pin', id);
+  await saveStateNow(); await loadAccount(id);
+}
+async function lockAccount(){
+  const id = S.acc; if (!id) return;
+  await saveStateNow();
+  try { await API.post(`/api/accounts/${encodeURIComponent(id)}/lock`); } catch (e){ console.warn(e); }
+  clearAccountState(); S.acc = null; renderAll(); setSync('');
+  await refreshAccounts(); showGate('list');
+}
+
+let GATE = { mode: 'list', acc: null };
+function showGate(mode = 'list', accId = null){
+  GATE = { mode: mode === 'list' && !S.accounts.length ? 'new' : mode, acc: accId };
+  closeMenus(); $('#gate').hidden = false; renderGate();
+}
+function hideGate(){ $('#gate').hidden = true; }
+const pinBoxes = () => `<div class="pin-boxes" data-pin>${'<input type="password" inputmode="numeric" autocomplete="off" aria-label="цифра PIN">'.repeat(4)}</div>`;
+const pinValue = () => $$('#gateBody .pin-boxes input').map(i => i.value).join('');
+function renderGate(){
+  const body = $('#gateBody'), m = GATE.mode, a = S.accounts.find(x => x.id === (GATE.acc || S.acc));
+  $('#gate').classList.toggle('as-modal', !!S.acc);
+  $('#gateClose').hidden = !S.acc;
+  const back = S.accounts.length ? `<button type="button" class="btn-text" data-gate="list">${I.back}все аккаунты</button>` : '<span></span>';
+  if (m === 'list'){
+    body.innerHTML = `<h3>чью ленту раскладываем?</h3>
+      <div class="gate-list">${S.accounts.map(x => `<button class="gate-acc" data-gate-acc="${x.id}">${avaHTML(x.name)}<span>${esc(x.name)}</span><span class="tail">${x.id === S.acc ? I.check : x.unlocked ? '' : I.lock}</span></button>`).join('')}</div>
+      <button class="btn-text" data-gate="new">${I.plus}новый аккаунт</button>`;
+  } else if (m === 'pin'){
+    body.innerHTML = `<form data-form="pin"><h3>${a ? avaHTML(a.name) + esc(a.name) : ''}</h3><p class="lead">введи PIN аккаунта</p>
+      ${pinBoxes()}<div class="gate-err" id="gateErr"></div><div class="gate-actions">${back}<span></span></div></form>`;
+  } else if (m === 'new'){
+    body.innerHTML = `<form data-form="new"><h3>${S.accounts.length ? 'новый аккаунт' : 'начнём с первого аккаунта'}</h3>
+      <label class="field"><span>название — например, ник в instagram</span><input type="text" name="name" maxlength="40" required autocomplete="off"></label>
+      <div class="field"><span>придумай PIN — по нему аккаунт открывают на другом компьютере</span>${pinBoxes()}</div>
+      ${S.inviteRequired ? '<label class="field"><span>код приглашения</span><input type="text" name="invite" required autocomplete="off"></label>' : ''}
+      <div class="gate-err" id="gateErr"></div><div class="gate-actions">${back}<button class="btn" type="submit">создать</button></div></form>`;
+  } else if (m === 'rename'){
+    body.innerHTML = `<form data-form="rename"><h3>переименовать</h3>
+      <label class="field"><span>название аккаунта</span><input type="text" name="name" maxlength="40" required autocomplete="off" value="${esc(a ? a.name : '')}"></label>
+      <div class="gate-err" id="gateErr"></div><div class="gate-actions"><button type="button" class="btn-text" data-gate="close">отмена</button><button class="btn" type="submit">сохранить</button></div></form>`;
+  } else if (m === 'changepin'){
+    body.innerHTML = `<form data-form="changepin"><h3>новый PIN</h3><p class="lead">на других компьютерах аккаунт закроется — там нужно будет ввести новый PIN</p>
+      ${pinBoxes()}<div class="gate-err" id="gateErr"></div><div class="gate-actions"><button type="button" class="btn-text" data-gate="close">отмена</button><span></span></div></form>`;
+  } else if (m === 'deleteacc'){
+    body.innerHTML = `<form data-form="deleteacc"><h3>удалить ${a ? '@' + esc(a.name) : 'аккаунт'}?</h3><p class="lead">все фото и раскладка этого аккаунта пропадут навсегда. вернуть не получится.</p>
+      <div class="gate-err" id="gateErr"></div><div class="gate-actions"><button type="button" class="btn-text" data-gate="close">отмена</button><button class="btn" type="submit">удалить навсегда</button></div></form>`;
+  }
+  const first = body.querySelector('input'); if (first) setTimeout(() => first.focus(), 40);
+}
+function gateError(msg){
+  $('#gateErr').textContent = msg;
+  const box = $('#gateBody .pin-boxes');
+  if (box){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); $$('input', box).forEach(i => { i.value = ''; }); $('input', box).focus(); }
+}
+async function submitGate(){
+  const f = $('#gateBody form'); if (!f || f.dataset.busy) return;
+  const m = f.dataset.form, fd = Object.fromEntries(new FormData(f)), pin = pinValue();
+  if ((m === 'pin' || m === 'new' || m === 'changepin') && pin.length !== 4) return gateError('PIN — 4 цифры');
+  f.dataset.busy = '1'; const btn = f.querySelector('[type=submit]'); if (btn) btn.disabled = true;
+  try {
+    if (m === 'pin'){ await API.post(`/api/accounts/${encodeURIComponent(GATE.acc)}/unlock`, { pin }); await saveStateNow(); await refreshAccounts(); await loadAccount(GATE.acc); }
+    if (m === 'new'){ const r = await API.post('/api/accounts', { name: fd.name, pin, invite: fd.invite }); await saveStateNow(); await refreshAccounts(); await loadAccount(r.id); toast('аккаунт создан'); }
+    if (m === 'rename'){ const name = String(fd.name || '').trim().replace(/^@+/, ''); await API.patch(accUrl(), { name }); const a = curAccount(); if (a) a.name = name; renderAccounts(); hideGate(); }
+    if (m === 'changepin'){ await API.patch(accUrl(), { pin }); hideGate(); toast('PIN изменён'); }
+    if (m === 'deleteacc'){
+      const a = curAccount(); clearTimeout(saveTimer); await API.del(accUrl());
+      clearAccountState(); S.acc = null; renderAll(); setSync(''); await refreshAccounts();
+      toast(`аккаунт ${a ? '@' + a.name : ''} удалён`); showGate('list');
+    }
+  } catch (ex){ gateError(ex.status ? ex.message : 'сервер недоступен'); }
+  finally { delete f.dataset.busy; if (btn) btn.disabled = false; }
+}
+$('#gate').addEventListener('submit', e => { e.preventDefault(); submitGate(); });
+$('#gate').addEventListener('click', async e => {
+  if (e.target.id === 'gate' && S.acc) return hideGate();
+  const b = e.target.closest('[data-gate-acc], [data-gate], #gateClose'); if (!b) return;
+  if (b.id === 'gateClose' || b.dataset.gate === 'close') return hideGate();
+  if (b.dataset.gate) return showGate(b.dataset.gate);
+  const id = b.dataset.gateAcc, a = S.accounts.find(x => x.id === id);
+  if (id === S.acc) return hideGate();
+  if (a && a.unlocked){ await saveStateNow(); return loadAccount(id); }
+  showGate('pin', id);
+});
+$('#gate').addEventListener('input', e => {
+  const t = e.target; if (!t.closest('.pin-boxes')) return;
+  const digits = t.value.replace(/\D/g, '');
+  if (digits.length > 1){ // быстрый ввод, вставка или автозаполнение — раскладываем по клеткам начиная с этой
+    const inputs = $$('#gateBody .pin-boxes input'), start = inputs.indexOf(t);
+    [...digits].slice(0, 4 - start).forEach((d, i) => { inputs[start + i].value = d; });
+    inputs[Math.min(start + digits.length, 4) - 1].focus();
+  } else { t.value = digits; if (digits && t.nextElementSibling) t.nextElementSibling.focus(); }
+  if (pinValue().length === 4 && (GATE.mode === 'pin' || GATE.mode === 'changepin')) submitGate();
+});
+$('#gate').addEventListener('keydown', e => {
+  const t = e.target; if (!t.closest || !t.closest('.pin-boxes')) return;
+  if (e.key === 'Backspace' && !t.value && t.previousElementSibling){ e.preventDefault(); t.previousElementSibling.value = ''; t.previousElementSibling.focus(); }
+  if (e.key === 'ArrowLeft' && t.previousElementSibling) t.previousElementSibling.focus();
+  if (e.key === 'ArrowRight' && t.nextElementSibling) t.nextElementSibling.focus();
+});
+$('#gate').addEventListener('paste', e => {
+  const t = e.target; if (!t.closest || !t.closest('.pin-boxes')) return;
+  const digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 4); if (!digits) return;
+  e.preventDefault(); const inputs = $$('#gateBody .pin-boxes input'); [...digits].forEach((d, i) => { inputs[i].value = d; }); inputs[digits.length - 1].focus();
+  if (digits.length === 4 && (GATE.mode === 'pin' || GATE.mode === 'changepin')) submitGate();
+});
+$('#accBtn').addEventListener('click', e => { e.stopPropagation(); $('#ctx').hidden = true; $('#accPop').hidden = !$('#accPop').hidden; });
+$('#accPop').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('#accPop').hidden = true;
+  if (b.dataset.acc) return switchAccount(b.dataset.acc);
+  if (b.dataset.accAct === 'lock') return lockAccount();
+  showGate(b.dataset.accAct);
+});
+
+// ---------- демо-картинки для проверки: __kl.demo() ----------
+async function demoFiles(n = 15){
+  const rng = mulberry32(42), files = [], hues = [8, 28, 48, 100, 140, 185, 205, 225, 275, 330, 35, 210];
+  for (let i = 0; i < n; i++){
+    const cv = document.createElement('canvas'); cv.width = 900; cv.height = 1200; const c = cv.getContext('2d');
+    const hue = hues[i % hues.length], lt = 28 + rng() * 52;
+    const g = c.createLinearGradient(0, 0, 0, 1200);
+    g.addColorStop(0, `hsl(${hue},${30 + rng() * 50}%,${Math.min(95, lt + 18)}%)`); g.addColorStop(1, `hsl(${(hue + 20) % 360},${25 + rng() * 40}%,${Math.max(8, lt - 12)}%)`);
+    c.fillStyle = g; c.fillRect(0, 0, 900, 1200);
+    const busy = rng() < .4, k = busy ? 2600 : 10;
+    for (let j = 0; j < k; j++){
+      c.fillStyle = `hsla(${(hue + rng() * 60 - 30 + 360) % 360},${40 + rng() * 40}%,${20 + rng() * 70}%,${busy ? .9 : .5})`;
+      const s = busy ? 3 + rng() * 14 : 80 + rng() * 220; c.beginPath(); c.arc(rng() * 900, rng() * 1200, s, 0, 7); c.fill();
+    }
+    files.push(new File([await canvasToBlob(cv, .9)], `демо-${i + 1}.jpg`, { type: 'image/jpeg' }));
+  }
+  return files;
+}
+window.__kl = { S, API, addFiles, layoutPlan, renderAll, loadAccount, handleDrop, doAction, demo: async n => addFiles(await demoFiles(n)) };
+
+// ---------- старт ----------
+(async function boot(){
+  renderSettings(); renderAll(); renderAccounts();
+  await refreshAccounts();
+  let cur = null; try { cur = localStorage.getItem('kl.acc'); } catch (e){}
+  const a = S.accounts.find(x => x.id === cur) || S.accounts.find(x => x.unlocked);
+  if (a && a.unlocked) return loadAccount(a.id);
+  showGate(a ? 'pin' : 'list', a ? a.id : null);
+})();
+</script>
+</body>
+</html>

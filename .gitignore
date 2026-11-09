@@ -1,0 +1,15 @@
+# зависимости и локальные сборки
+node_modules/
+.wrangler/
+
+# локальные данные server.js: база, ключ подписи, фото
+data/
+
+# секреты
+.dev.vars
+invite-code.txt
+.env*
+
+# окружение
+.claude/
+.DS_Store

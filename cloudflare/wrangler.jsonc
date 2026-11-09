@@ -1,0 +1,46 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "klyasser",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-15",
+
+  // адреса: свой поддомен + ссылка на workers.dev
+  // (домен автора — поменяй на свой или удали блок routes, если разворачиваешь у себя)
+  "routes": [
+    { "pattern": "klyasser.tapakahokot.com", "custom_domain": true }
+  ],
+  "workers_dev": true,
+
+  // Статика: ../public (index.html). "/" и "/index.html" сначала идут в воркер,
+  // чтобы index.html отдавался с Cache-Control: no-cache (класть _headers в public/ нельзя).
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/", "/index.html"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "klyasser",
+      // id базы из `npx wrangler d1 create klyasser`
+      "database_id": "4b3d963a-a2ac-4e3f-9d27-d797336ce89d",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Фото в R2 (нужна привязанная карта в аккаунте Cloudflare).
+  // Без карты: поставь "STORAGE": "d1" ниже и УДАЛИ этот блок r2_buckets целиком —
+  // иначе deploy упадёт, потому что бакета нет.
+  "r2_buckets": [
+    { "binding": "PHOTOS", "bucket_name": "klyasser-photos" }
+  ],
+
+  "vars": {
+    // "r2" — фото в R2 (до 25 МБ на файл); "d1" — фото прямо в D1 (до 1,9 МБ на файл, ~500 МБ на всё)
+    "STORAGE": "r2"
+    // "KLYASSER_INVITE": "код"   ← если нужен код приглашения для новых аккаунтов
+  },
+
+  "observability": { "enabled": true }
+}
