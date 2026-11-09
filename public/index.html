@@ -191,7 +191,7 @@ svg.f{fill:currentColor;stroke:none}
 body.dragging,body.dragging .panel,body.dragging .cell,body.dragging .stamp-wrap{cursor:grabbing}
 body.dragging .hb,body.dragging .ov-info{opacity:0!important}
 .lifted{opacity:.25}
-.cell.drop-target{outline:3px dashed var(--red);outline-offset:-3px}
+.cell.drop-target::before{content:"";position:absolute;inset:0;border:3px dashed var(--red);z-index:4;pointer-events:none}
 .cell.drop-target img{filter:brightness(.8) saturate(.8)}
 .cell.drop-no img{filter:grayscale(.7) brightness(.85)}
 .feed-panel.drop-auto .feed-scroll{background-color:rgba(213,223,238,.45)}
@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <div class="stamps" id="stamps"></div>
       </div>
       <div class="panel-foot" id="bufferFoot" hidden><button class="btn-text" id="allToFeed">всё в ленту <svg class="i" viewBox="0 0 16 16"><path d="M5 11l6-6M6 5h5v5"/></svg></button></div>
-      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      <input type="file" id="fileInput" accept="image/*,.heic,.heif" multiple hidden>
     </section>
 
     <section class="panel feed-panel" id="feedPanel">
@@ -884,14 +884,41 @@ function fly(src, from, to, el){
 // ---------- загрузка ----------
 function loadImage(src){ return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('decode')); img.src = src; }); }
 async function blobToImage(blob){ const url = URL.createObjectURL(blob); try { return await loadImage(url); } finally { URL.revokeObjectURL(url); } }
+// HEIC (фото с айфона): Safari открывает сам, для остальных браузеров при первом HEIC
+// подгружаем конвертер heic2any (libheif) и переводим в JPEG прямо в браузере
+const isHeic = f => /image\/hei[cf]/i.test(f.type || '') || /\.(heic|heif)$/i.test(f.name || '');
+let heicLib = null;
+function loadHeicLib(){
+  return heicLib ||= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+    s.integrity = 'sha384-OTofQ0MEeiSgh62havBcemCIK0gqj809wX6UA0uPISNMRnR6NZyCdGzX3SbLrgwL';
+    s.crossOrigin = 'anonymous';
+    s.onload = () => window.heic2any ? res(window.heic2any) : rej(new Error('heic2any'));
+    s.onerror = () => { heicLib = null; rej(new Error('heic2any не загрузился')); };
+    document.head.appendChild(s);
+  });
+}
+let heicToastShown = false;
+async function decodeImage(f){
+  try { return await blobToImage(f); }
+  catch (e){
+    if (!isHeic(f)) throw e;
+    if (!heicToastShown){ heicToastShown = true; toast('перевожу HEIC в JPEG…'); }
+    const convert = await loadHeicLib();
+    let out = await convert({ blob: f, toType: 'image/jpeg', quality: .92 });
+    if (Array.isArray(out)) out = out[0];
+    return await blobToImage(out);
+  }
+}
 async function addFiles(fileList){
   const files = [...fileList].filter(f => (f.type || '').startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif|gif)$/i.test(f.name));
   if (!files.length) return;
   if (!S.acc) return toast('сначала открой аккаунт');
-  let n = 0;
+  let n = 0; heicToastShown = false;
   for (const f of files){
     try {
-      const img = await blobToImage(f);
+      const img = await decodeImage(f);
       const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
       const src = document.createElement('canvas'); src.width = w; src.height = h;
@@ -912,7 +939,7 @@ async function addFiles(fileList){
     } catch (e){
       console.warn(e);
       if (e.status || e.name === 'TypeError') toast(`не загрузилось на сервер: ${f.name}`);
-      else toast(`не открылось: ${f.name}` + (/\.hei[cf]$/i.test(f.name) ? ' — HEIC пока не читается, сохрани как JPEG' : ''));
+      else toast(isHeic(f) ? `не получилось прочитать HEIC: ${f.name}` : `не открылось: ${f.name}`);
     }
   }
   persist(); renderAll();
