@@ -51,6 +51,9 @@ while letting you pin any photo exactly where you want it.
 - **Undo / redo everything**, a toast to restore deleted photos, keyboard shortcuts.
 - **3:4 crop** — choose what part of the photo shows in the grid; the analysis follows the crop.
 - **HEIC support** — iPhone photos are converted to JPEG in the browser when needed.
+- **Light storage** — photos are downscaled to 1440 px (the height of a 3:4 Instagram post) and re-encoded,
+  so a 5–20 MB original takes ~100–250 KB. Originals are never stored; EXIF and location are stripped.
+- **Upload queue with progress** — add more photos while the previous ones are still uploading.
 - **Several accounts, no sign-up** — each Instagram account has its own photos, layout and set of
   features, protected by a 4-digit PIN. New accounts can require an invite code.
 - **Safe on two computers at once** — versioned saves never overwrite a newer layout.

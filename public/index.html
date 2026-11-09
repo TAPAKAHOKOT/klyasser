@@ -113,7 +113,16 @@ svg.f{fill:currentColor;stroke:none}
 
 /* ---------- буфер ---------- */
 .drop{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--blue);border-radius:14px;padding:11px 13px;cursor:pointer;color:var(--blue-deep);
-  background:radial-gradient(circle,var(--blue-pale) 1.1px,transparent 1.5px) 0 0/7px 7px;transition:background-color .2s,padding .2s;margin:2px 0 14px}
+  background:radial-gradient(circle,var(--blue-pale) 1.1px,transparent 1.5px) 0 0/7px 7px;transition:background-color .2s,padding .2s;margin:0}
+.buffer-top{flex:none;padding:2px 18px 12px;border-bottom:1px dashed transparent;transition:border-color .2s;position:relative;z-index:2}
+.buffer.scrolled .buffer-top{border-bottom-color:var(--line)}
+.upload{margin-top:10px;background:var(--card-2);border-radius:12px;padding:10px 12px 9px;box-shadow:inset 0 0 0 1px var(--line)}
+.up-row{display:flex;align-items:center;gap:8px;font:600 12.5px var(--sans);color:var(--ink)}
+.up-row svg{width:12px;height:12px;color:var(--red);animation:spin 1.4s linear infinite;flex:none}
+.up-pct{margin-left:auto;font:500 11px var(--mono);color:var(--ink-3)}
+.up-track{height:4px;border-radius:2px;background:var(--blue-pale);margin:8px 0 6px;overflow:hidden}
+.up-track i{display:block;height:100%;width:0;background:var(--blue-deep);border-radius:2px;transition:width .25s ease}
+.up-name{font:500 10.5px var(--mono);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .drop:hover{background-color:var(--blue-mist)}
 .drop .plus{width:30px;height:30px;border-radius:50%;background:var(--card-2);display:grid;place-items:center;flex:none;box-shadow:0 0 0 1px var(--line)}
 .drop b{display:block;font:italic 600 18px/1.15 var(--serif)}
@@ -363,8 +372,15 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   <main class="cols">
     <section class="panel buffer" id="bufferPanel">
       <div class="panel-head"><h2>буфер</h2><span class="count" id="bufCount"></span></div>
-      <div class="panel-body" id="bufferBody">
+      <div class="buffer-top">
         <label class="drop" for="fileInput"><span class="plus"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span><span><b>добавить фото</b><small>или перетащи сюда</small></span></label>
+        <div class="upload" id="upload" hidden>
+          <div class="up-row"><svg class="f" viewBox="0 0 20 20"><path d="M10 0Q10.9 9.1 20 10 10.9 10.9 10 20 9.1 10.9 0 10 9.1 9.1 10 0z"/></svg><span id="upText">загружаю фото</span><span class="up-pct" id="upPct"></span></div>
+          <div class="up-track"><i id="upBar"></i></div>
+          <div class="up-name" id="upName"></div>
+        </div>
+      </div>
+      <div class="panel-body" id="bufferBody">
         <div class="stamps" id="stamps"></div>
       </div>
       <div class="panel-foot" id="bufferFoot" hidden><button class="btn-text" id="allToFeed">всё в ленту <svg class="i" viewBox="0 0 16 16"><path d="M5 11l6-6M6 5h5v5"/></svg></button></div>
@@ -513,9 +529,25 @@ function lab2rgb([L, a, b]){
 const hex2lab = hex => { const n = parseInt(hex.slice(1), 16); return rgb2lab(n >> 16 & 255, n >> 8 & 255, n & 255); };
 const lab2hex = lab => lab ? '#' + lab2rgb(lab).map(v => v.toString(16).padStart(2, '0')).join('') : 'transparent';
 const dE = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
-const NAMED = [['красный','#c8323a'],['коралловый','#e2725b'],['оранжевый','#e08a2e'],['жёлтый','#e6c84a'],['оливковый','#8c8a4b'],['зелёный','#4f8f4a'],['бирюзовый','#3a9c98'],['голубой','#86b4dc'],['синий','#2b4ea3'],['фиолетовый','#7656a3'],['розовый','#e3a0b4'],['коричневый','#7a5236'],['бежевый','#d8c3a0'],['белый','#f3f0e9'],['серый','#8f8f8c'],['чёрный','#232323']]
-  .map(([name, hex]) => ({ name, lab: hex2lab(hex) }));
-function colorName(lab){ if (!lab) return '—'; let best = NAMED[0], bd = 1e9; for (const c of NAMED){ const d = dE(lab, c.lab); if (d < bd){ bd = d; best = c; } } return best.name; }
+// Название цвета — по светлоте (L), насыщенности (C) и оттенку (h) в LCh, а не по ближайшей точке из списка:
+// так серовато-бежевые не становятся «серыми», а светло-серые — «белыми».
+// Названия — только подписи; похожесть цветов при раскладке считается по реальному расстоянию ΔE.
+function colorName(lab){
+  if (!lab) return '—';
+  const [L, a, b] = lab, C = Math.hypot(a, b), h = (Math.atan2(b, a) * 180 / Math.PI + 360) % 360;
+  if (C < 7) return L >= 88 ? 'белый' : L <= 25 ? 'чёрный' : 'серый';
+  if (C < 28 && h >= 30 && h <= 105) return L >= 52 ? 'бежевый' : L <= 12 ? 'чёрный' : 'коричневый';
+  if (C < 14) return L >= 90 ? 'белый' : L <= 22 ? 'чёрный' : 'серый';
+  if (L <= 14) return 'чёрный';
+  if (h >= 345 || h < 25) return L >= 72 ? 'розовый' : 'красный';
+  if (h < 48) return L >= 72 ? 'розовый' : L >= 55 ? 'коралловый' : (L < 42 && C < 45) ? 'коричневый' : 'красный';
+  if (h < 75) return L >= 55 ? 'оранжевый' : 'коричневый';
+  if (h < 110) return L >= 62 ? 'жёлтый' : 'оливковый';
+  if (h < 165) return 'зелёный';
+  if (h < 235) return 'бирюзовый';
+  if (h < 292) return L >= 62 ? 'голубой' : 'синий';
+  return (L >= 60 && a > 30) ? 'розовый' : L >= 65 ? 'сиреневый' : 'фиолетовый';
+}
 
 // ---------- признаки ----------
 const ATTRS = {
@@ -900,50 +932,85 @@ function loadHeicLib(){
   });
 }
 let heicToastShown = false;
-async function decodeImage(f){
+async function decodeImage(f, onHeic){
   try { return await blobToImage(f); }
   catch (e){
     if (!isHeic(f)) throw e;
-    if (!heicToastShown){ heicToastShown = true; toast('перевожу HEIC в JPEG…'); }
+    if (onHeic) onHeic();
+    else if (!heicToastShown){ heicToastShown = true; toast('перевожу HEIC в JPEG…'); }
     const convert = await loadHeicLib();
     let out = await convert({ blob: f, toType: 'image/jpeg', quality: .92 });
     if (Array.isArray(out)) out = out[0];
     return await blobToImage(out);
   }
 }
-async function addFiles(fileList){
+// Оригиналы не храним: фото уменьшается до 1440 px по длинной стороне (это высота кадра 3:4 в Instagram,
+// больше ему не нужно) и пережимается в JPEG. Заодно из файла уходят EXIF и геометка.
+const SRC_MAX = 1440, SRC_Q = .85, THUMB_Q = .82;
+
+// Загрузка идёт очередью: можно подкидывать фото, пока грузятся предыдущие. Прогресс — под «добавить фото».
+const UP = { queue: [], total: 0, done: 0, frac: 0, name: '', stage: '', running: false, added: 0, promise: null };
+function renderUpload(){
+  const el = $('#upload'); if (!el) return;
+  el.hidden = !UP.running; if (!UP.running) return;
+  const pct = Math.min(100, Math.round((UP.done + UP.frac) / Math.max(1, UP.total) * 100));
+  $('#upText').textContent = UP.total > 1 ? `загружаю ${Math.min(UP.done + 1, UP.total)} из ${UP.total}` : 'загружаю фото';
+  $('#upPct').textContent = pct + '%';
+  $('#upBar').style.width = pct + '%';
+  $('#upName').textContent = UP.stage ? `${UP.name} · ${UP.stage}` : UP.name;
+}
+const upStep = (f, stage) => { UP.frac = f; if (stage) UP.stage = stage; renderUpload(); };
+function addFiles(fileList){
   const files = [...fileList].filter(f => (f.type || '').startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif|gif)$/i.test(f.name));
-  if (!files.length) return;
-  if (!S.acc) return toast('сначала открой аккаунт');
-  let n = 0; heicToastShown = false;
-  for (const f of files){
-    try {
-      const img = await decodeImage(f);
-      const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
-      const src = document.createElement('canvas'); src.width = w; src.height = h;
-      const sctx = src.getContext('2d'); sctx.imageSmoothingQuality = 'high'; sctx.drawImage(img, 0, 0, w, h);
-      const id = uid(), crop = { cx: .5, cy: .5, zoom: 1 };
-      const [srcBlob, thumbBlob] = await Promise.all([canvasToBlob(src, .9), canvasToBlob(drawCrop(src, crop, 450, 600), .85)]);
-      const acc = S.acc; if (!acc) return;
-      const p = { id, name: f.name, w, h, crop, auto: analyze(src, crop), thumbV: 1, addedAt: Date.now() };
-      setSync('saving');
-      const base = `/api/acc/${encodeURIComponent(acc)}/photos/${id}`;
-      await API.put(base + '/src', srcBlob); await API.put(base + '/thumb', thumbBlob); await API.put(base + '/meta', p);
-      if (S.acc !== acc) return;
-      p.manual = {};
-      S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); S.layout.buffer.unshift(id);
-      n++; renderBuffer();
-      const el = $(`.stamp-wrap[data-id="${id}"]`);
-      if (el && !REDUCED) el.animate([{ opacity: 0, transform: 'translateY(-10px) scale(.9)' }, { opacity: 1, transform: 'rotate(var(--rot))' }], { duration: 300, easing: 'cubic-bezier(.2,.75,.25,1)' });
-    } catch (e){
+  if (!files.length) return Promise.resolve();
+  if (!S.acc){ toast('сначала открой аккаунт'); return Promise.resolve(); }
+  UP.queue.push(...files); UP.total += files.length;
+  if (!UP.running) UP.promise = runUploads();
+  renderUpload();
+  return UP.promise;
+}
+async function runUploads(){
+  UP.running = true; UP.added = 0; heicToastShown = false;
+  const acc = S.acc;
+  while (UP.queue.length){
+    if (S.acc !== acc){ UP.queue.length = 0; break; } // сменили аккаунт — остальное не грузим
+    const f = UP.queue.shift(); UP.name = f.name; upStep(0, 'читаю');
+    try { if (await uploadOne(f, acc)) UP.added++; }
+    catch (e){
       console.warn(e);
       if (e.status || e.name === 'TypeError') toast(`не загрузилось на сервер: ${f.name}`);
       else toast(isHeic(f) ? `не получилось прочитать HEIC: ${f.name}` : `не открылось: ${f.name}`);
     }
+    UP.done++; UP.frac = 0; renderUpload();
   }
-  persist(); renderAll();
+  const n = UP.added;
+  UP.running = false; UP.total = UP.done = 0; UP.name = UP.stage = ''; renderUpload();
+  if (S.acc === acc){ persist(); renderAll(); }
   if (n) toast(n === 1 ? 'фото в буфере' : `в буфере +${n}`);
+}
+async function uploadOne(f, acc){
+  const img = await decodeImage(f, () => upStep(.05, 'перевожу из HEIC')); upStep(.15, 'сжимаю');
+  const sc = Math.min(1, SRC_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
+  const src = document.createElement('canvas'); src.width = w; src.height = h;
+  const sctx = src.getContext('2d'); sctx.imageSmoothingQuality = 'high'; sctx.drawImage(img, 0, 0, w, h);
+  const id = uid(), crop = { cx: .5, cy: .5, zoom: 1 };
+  const [srcBlob, thumbBlob] = await Promise.all([canvasToBlob(src, SRC_Q), canvasToBlob(drawCrop(src, crop, 450, 600), THUMB_Q)]);
+  const p = { id, name: f.name, w, h, crop, auto: analyze(src, crop), thumbV: 1, addedAt: Date.now(), bytes: srcBlob.size + thumbBlob.size };
+  upStep(.3, 'отправляю');
+  if (S.acc !== acc) return false;
+  setSync('saving');
+  const base = `/api/acc/${encodeURIComponent(acc)}/photos/${id}`;
+  await API.put(base + '/src', srcBlob); upStep(.75);
+  await API.put(base + '/thumb', thumbBlob); upStep(.9);
+  await API.put(base + '/meta', p); upStep(1);
+  if (S.acc !== acc) return false;
+  p.manual = {};
+  S.photos.set(id, p); S.localUrls.set(id, URL.createObjectURL(thumbBlob)); S.layout.buffer.unshift(id);
+  renderBuffer();
+  const el = $(`.stamp-wrap[data-id="${id}"]`);
+  if (el && !REDUCED) el.animate([{ opacity: 0, transform: 'translateY(-10px) scale(.9)' }, { opacity: 1, transform: 'rotate(var(--rot))' }], { duration: 300, easing: 'cubic-bezier(.2,.75,.25,1)' });
+  return true;
 }
 
 // удаление с возможностью вернуть: с сервера стираем через 6 секунд
@@ -1388,6 +1455,7 @@ document.addEventListener('contextmenu', e => {
   e.preventDefault(); select(c.dataset.id); openMenu(c.dataset.id, e.clientX, e.clientY);
 });
 ['#feedScroll', '#bufferBody'].forEach(s => $(s).addEventListener('scroll', () => { $('#ctx').hidden = true; }, { passive: true }));
+$('#bufferBody').addEventListener('scroll', e => $('#bufferPanel').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
 
 $('#inspector').addEventListener('click', e => {
   const id = S.selected, b = e.target.closest('button'); if (!id || !b) return;
